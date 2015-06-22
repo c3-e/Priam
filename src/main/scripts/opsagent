@@ -1,0 +1,130 @@
+#!/bin/sh
+
+# Use JAVA_HOME if set, otherwise look for java in PATH
+if [ -n "$JAVA_HOME" ]; then
+    for java in "$JAVA_HOME"/bin/amd64/java "$JAVA_HOME"/bin/java; do
+        if [ -x "$java" ]; then
+            JAVA="$java"
+            break
+        fi
+    done
+else
+    JAVA=java
+fi
+
+if [ -z $JAVA ] ; then
+    echo Unable to find java executable. Check JAVA_HOME and PATH environment variables. > /dev/stderr
+    exit 1;
+fi
+
+if [ "x$OPSAGENT_HOME" = "x" ]; then
+    OPSAGENT_HOME="`dirname "$0"`/.."
+fi
+
+# The directory where Cassandra's configs live (required)
+if [ "x$OPSAGENT_CONF" = "x" ]; then
+    OPSAGENT_CONF="$OPSAGENT_HOME/conf"
+fi
+
+opeagent_bin="$OPSAGENT_HOME/build/classes/main"
+CLASSPATH="$OPSAGENT_CONF:$opeagent_bin"
+
+for jar in "$OPSAGENT_HOME"/lib/*.jar; do
+    CLASSPATH="$CLASSPATH:$jar"
+done
+
+if [ -z "$OPSAGENT_CONF" -o -z "$CLASSPATH" ]; then
+    echo "You must set the OPSAGENT_CONF and CLASSPATH vars" >&2
+    exit 1
+fi
+
+
+launch_service()
+{
+    pidpath="$1"
+    foreground="$2"
+    props="$3"
+    class="$4"
+    opsagent_parms="-Dlogback.configurationFile=$OPSAGENT_CONF/log4j.properties"
+    opsagent_parms="$opsagent_parms -Dopsagent.opsagentProperties=$OPSAGENT_CONF/Opsagent.properties"
+    opsagent_parms="$opsagent_parms -Dopsagent.opsagentPORT=8080"
+
+    if [ "x$pidpath" != "x" ]; then
+        opsagent_parms="$opsagent_parms -Dopsagent-pidfile=$pidpath"
+    fi
+
+    # The opsagent-foreground option will tell BootstrapServer not
+    # to close stdout/stderr, but it's up to us not to background.
+    if [ "x$foreground" != "x" ]; then
+        opsagent_parms="$opsagent_parms -Dopsagent-foreground=yes"
+        exec $NUMACTL "$JAVA" $JVM_OPTS $opsagent_parms -cp "$CLASSPATH" $props "$class"
+    # Startup BootstrapServer, background it, and write the pid.
+    else
+        exec $NUMACTL "$JAVA" $JVM_OPTS $opsagent_parms -cp "$CLASSPATH" $props "$class" <&- &
+        [ ! -z "$pidpath" ] && printf "%d" $! > "$pidpath"
+        true
+    fi
+
+    return $?
+}
+
+# Parse any command line options.
+args=`getopt vfhp:bD:H:E: "$@"`
+eval set -- "$args"
+
+classname="c3.ops.priam.BootstrapServer"
+
+while true; do
+    case "$1" in
+        -p)
+            pidfile="$2"
+            shift 2
+        ;;
+        -f)
+            foreground="yes"
+            shift
+        ;;
+        -h)
+            echo "Usage: $0 [-f] [-h] [-p pidfile] [-H dumpfile] [-E errorfile]"
+            exit 0
+        ;;
+        -v)
+            #"$JAVA" -cp "$CLASSPATH" c3.ops.priam.tools.GetVersion
+            echo "1.0"
+            exit 0
+        ;;
+        -D)
+            properties="$properties -D$2"
+            shift 2
+        ;;
+        -H)
+            properties="$properties -XX:HeapDumpPath=$2"
+            shift 2
+        ;;
+        -E)
+            properties="$properties -XX:ErrorFile=$2"
+            shift 2
+        ;;
+        --)
+            shift
+            break
+        ;;
+        *)
+            echo "Error parsing arguments!" >&2
+            exit 1
+        ;;
+    esac
+done
+
+"$JAVA" -cp "$CLASSPATH" $JVM_OPTS 2>&1 | grep -q 'Error: Exception thrown by the agent : java.lang.NullPointerException'
+if [ $? -ne "1" ]; then 
+    echo Unable to bind, Ops Agent already running?
+    exit 1;
+fi
+
+# Start up the service
+launch_service "$pidfile" "$foreground" "$properties" "$classname"
+
+exit $?
+
+# vi:ai sw=4 ts=4 tw=0 et
