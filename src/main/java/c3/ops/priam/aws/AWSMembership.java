@@ -18,10 +18,6 @@ package c3.ops.priam.aws;
 import c3.ops.priam.IConfiguration;
 import c3.ops.priam.ICredential;
 import c3.ops.priam.identity.IMembership;
-import com.amazonaws.services.autoscaling.AmazonAutoScaling;
-import com.amazonaws.services.autoscaling.AmazonAutoScalingClient;
-import com.amazonaws.services.autoscaling.model.*;
-import com.amazonaws.services.autoscaling.model.Instance;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2Client;
 import com.amazonaws.services.ec2.model.*;
@@ -51,22 +47,25 @@ public class AWSMembership implements IMembership {
     this.provider = provider;
   }
 
-  @Override
-  public List<String> getRacMembership() {
-    AmazonAutoScaling client = null;
+
+  public List<String> getRunningInstancesByTags(String tagName, List<String> values) {
+    AmazonEC2 client = null;
+
     try {
-      client = getAutoScalingClient();
-      DescribeAutoScalingGroupsRequest ringReq = new DescribeAutoScalingGroupsRequest().withAutoScalingGroupNames(config.getRingName());
-      DescribeAutoScalingGroupsResult res = client.describeAutoScalingGroups(ringReq);
 
       List<String> instanceIds = Lists.newArrayList();
-      for (AutoScalingGroup ring : res.getAutoScalingGroups()) {
-        for (Instance ins : ring.getInstances())
-          if (!(ins.getLifecycleState().equalsIgnoreCase("Terminating") || ins.getLifecycleState().equalsIgnoreCase("shutting-down") || ins.getLifecycleState()
-              .equalsIgnoreCase("Terminated")))
-            instanceIds.add(ins.getInstanceId());
+      List<String> states = new ArrayList<String>();
+
+      client = getEc2Client();
+      states.add("running");
+      DescribeInstancesRequest req = new DescribeInstancesRequest().withFilters(new Filter("tag:" + tagName, values), new Filter("instance-state-name", states));
+
+      for (Reservation reservation : client.describeInstances(req).getReservations()) {
+        for (Instance instance : reservation.getInstances()) {
+          instanceIds.add(instance.getInstanceId());
+          logger.info(String.format("Querying Amazon returned following instance in the Ring: %s --> %s", config.getRac(), StringUtils.join(instanceIds, ",")));
+        }
       }
-      logger.info(String.format("Querying Amazon returned following instance in the Ring: %s --> %s", config.getRac(), StringUtils.join(instanceIds, ",")));
       return instanceIds;
     } finally {
       if (client != null)
@@ -74,26 +73,23 @@ public class AWSMembership implements IMembership {
     }
   }
 
+
+  @Override
+  public List<String> getRacMembership() {
+    List<String> values = new ArrayList<String>();
+    values.add(config.getRingName());
+    return getRunningInstancesByTags("ring_name", values);
+  }
+
+
   /**
    * Actual membership AWS source of truth...
    */
   @Override
   public int getRacMembershipSize() {
-    AmazonAutoScaling client = null;
-    try {
-      client = getAutoScalingClient();
-      DescribeAutoScalingGroupsRequest ringReq = new DescribeAutoScalingGroupsRequest().withAutoScalingGroupNames(config.getRingName());
-      DescribeAutoScalingGroupsResult res = client.describeAutoScalingGroups(ringReq);
-      int size = 0;
-      for (AutoScalingGroup ring : res.getAutoScalingGroups()) {
-        size += ring.getMaxSize();
-      }
-      logger.info(String.format("Query on Ring returning %d instances", size));
-      return size;
-    } finally {
-      if (client != null)
-        client.shutdown();
-    }
+    List<String> values = new ArrayList<String>();
+    values.add(config.getRingName());
+    return getRunningInstancesByTags("ring_name", values).size();
   }
 
   @Override
@@ -154,32 +150,6 @@ public class AWSMembership implements IMembership {
       if (client != null)
         client.shutdown();
     }
-  }
-
-  @Override
-  public void expandRacMembership(int count) {
-    AmazonAutoScaling client = null;
-    try {
-      client = getAutoScalingClient();
-      DescribeAutoScalingGroupsRequest ringReq = new DescribeAutoScalingGroupsRequest().withAutoScalingGroupNames(config.getRingName());
-      DescribeAutoScalingGroupsResult res = client.describeAutoScalingGroups(ringReq);
-      AutoScalingGroup ring = res.getAutoScalingGroups().get(0);
-      UpdateAutoScalingGroupRequest ureq = new UpdateAutoScalingGroupRequest();
-      ureq.setAutoScalingGroupName(ring.getAutoScalingGroupName());
-      ureq.setMinSize(ring.getMinSize() + 1);
-      ureq.setMaxSize(ring.getMinSize() + 1);
-      ureq.setDesiredCapacity(ring.getMinSize() + 1);
-      client.updateAutoScalingGroup(ureq);
-    } finally {
-      if (client != null)
-        client.shutdown();
-    }
-  }
-
-  protected AmazonAutoScaling getAutoScalingClient() {
-    AmazonAutoScaling client = new AmazonAutoScalingClient(provider.getAwsCredentialProvider());
-    client.setEndpoint("autoscaling." + config.getDC() + ".amazonaws.com");
-    return client;
   }
 
   protected AmazonEC2 getEc2Client() {

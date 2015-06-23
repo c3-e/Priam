@@ -70,11 +70,4 @@ public interface IMembership {
    * @return
    */
   public List<String> listACL(int from, int to);
-
-  /**
-   * Expand the membership size by 1.
-   *
-   * @param count
-   */
-  public void expandRacMembership(int count);
 }

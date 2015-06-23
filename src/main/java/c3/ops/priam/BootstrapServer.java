@@ -13,7 +13,7 @@ public class BootstrapServer {
       Server server = new Server(Integer.valueOf(System.getProperty("opsagent.opsagentPORT")));
       String webDir = BootstrapServer.class.getProtectionDomain().getCodeSource().getLocation().toExternalForm();
       WebAppContext webAppContext = new WebAppContext(webDir, "/");
-      webAppContext.setDescriptor(webAppContext+"/WEB-INF/web.xml");
+      webAppContext.setDescriptor(webAppContext + "/WEB-INF/web.xml");
       server.setHandler(webAppContext);
       server.start();
       server.join();

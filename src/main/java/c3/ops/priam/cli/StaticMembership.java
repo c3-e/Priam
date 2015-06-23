@@ -92,8 +92,4 @@ public class StaticMembership implements IMembership {
   public List<String> listACL(int from, int to) {
     return null;
   }
-
-  @Override
-  public void expandRacMembership(int count) {
-  }
 }

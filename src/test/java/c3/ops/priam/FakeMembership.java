@@ -49,10 +49,4 @@ public class FakeMembership implements IMembership {
     // TODO Auto-generated method stub
     return null;
   }
-
-  @Override
-  public void expandRacMembership(int count) {
-    // TODO Auto-generated method stub
-
-  }
 }

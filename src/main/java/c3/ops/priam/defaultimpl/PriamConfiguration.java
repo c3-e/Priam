@@ -166,7 +166,7 @@ public class PriamConfiguration implements IConfiguration {
 //  private final String INSTANCE_ID = "i-b2137a99";
 //  private final String LOCAL_IP = "10.0.11.100";
 //  private final String LOCAL_HOSTNAME = "dev-c3-cass-10.c3-vpc.internal";
-//  private final String RAC = "1a";
+//  private final String RAC = "us-east-1a";
 
   // Defaults
   private final String DEFAULT_CLUSTER_NAME = "cass_cluster";
