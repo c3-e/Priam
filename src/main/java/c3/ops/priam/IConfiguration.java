@@ -422,6 +422,8 @@ public interface IConfiguration {
 
   public String getCassYamlVal(String priamKey);
 
+  public Object getCassYamlProperty(String Key);
+
   public boolean getAutoBoostrap();
 
   //if using with Datastax Enterprise

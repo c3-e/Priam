@@ -16,7 +16,6 @@
 package c3.ops.priam.resources;
 
 import c3.ops.priam.PriamServer;
-import c3.ops.priam.identity.DoubleRing;
 import com.google.inject.Inject;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -27,7 +26,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.io.IOException;
 import java.util.List;
 
 /**
@@ -39,12 +37,10 @@ import java.util.List;
 public class CassandraConfig {
   private static final Logger logger = LoggerFactory.getLogger(CassandraConfig.class);
   private PriamServer priamServer;
-  private DoubleRing doubleRing;
 
   @Inject
-  public CassandraConfig(PriamServer server, DoubleRing doubleRing) {
+  public CassandraConfig(PriamServer server) {
     this.priamServer = server;
-    this.doubleRing = doubleRing;
   }
 
   @GET
@@ -99,21 +95,5 @@ public class CassandraConfig {
       logger.error("Error while executing get_replaced_ip", e);
       return Response.serverError().build();
     }
-  }
-
-
-  @GET
-  @Path("/double_ring")
-  public Response doubleRing() throws IOException, ClassNotFoundException {
-    try {
-      doubleRing.backup();
-      doubleRing.doubleSlots();
-    } catch (Throwable th) {
-      logger.error("Error in doubling the ring...", th);
-      doubleRing.restore();
-      // rethrow
-      throw new RuntimeException(th);
-    }
-    return Response.status(200).build();
   }
 }

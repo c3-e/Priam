@@ -1,7 +1,6 @@
 package c3.ops.priam.resources;
 
 import c3.ops.priam.PriamServer;
-import c3.ops.priam.identity.DoubleRing;
 import c3.ops.priam.identity.InstanceIdentity;
 import c3.ops.priam.identity.PriamInstance;
 import com.google.common.collect.ImmutableList;
@@ -12,25 +11,21 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.ws.rs.core.Response;
-import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 public class CassandraConfigTest {
   private
   @Mocked
   PriamServer priamServer;
-  private
-  @Mocked
-  DoubleRing doubleRing;
+
   private CassandraConfig resource;
 
   @Before
   public void setUp() {
-    resource = new CassandraConfig(priamServer, doubleRing);
+    resource = new CassandraConfig(priamServer);
   }
 
   @Test
@@ -209,57 +204,5 @@ public class CassandraConfigTest {
     Response response = resource.getReplacedIp();
     assertEquals(200, response.getStatus());
     assertEquals(replacedIp, response.getEntity());
-  }
-
-  @Test
-  public void doubleRing() throws Exception {
-    new NonStrictExpectations() {{
-      doubleRing.backup();
-      doubleRing.doubleSlots();
-    }};
-
-    Response response = resource.doubleRing();
-    assertEquals(200, response.getStatus());
-  }
-
-  @Test
-  public void doubleRing_ioExceptionInBackup() throws Exception {
-    final IOException exception = new IOException();
-    new NonStrictExpectations() {{
-      doubleRing.backup();
-      result = exception;
-      doubleRing.restore();
-    }};
-
-    try {
-      resource.doubleRing();
-      fail("Excepted RuntimeException");
-    } catch (RuntimeException e) {
-      assertEquals(exception, e.getCause());
-    }
-  }
-
-  @Test(expected = IOException.class)
-  public void doubleRing_ioExceptionInRestore() throws Exception {
-    new NonStrictExpectations() {{
-      doubleRing.backup();
-      result = new IOException();
-      doubleRing.restore();
-      result = new IOException();
-    }};
-
-    resource.doubleRing();
-  }
-
-  @Test(expected = ClassNotFoundException.class)
-  public void doubleRing_classNotFoundExceptionInRestore() throws Exception {
-    new NonStrictExpectations() {{
-      doubleRing.backup();
-      result = new IOException();
-      doubleRing.restore();
-      result = new ClassNotFoundException();
-    }};
-
-    resource.doubleRing();
   }
 }

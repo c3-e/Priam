@@ -61,8 +61,10 @@ public class NewTokenRetriever extends TokenRetrieverBase implements INewTokenRe
 
     logger.info(String.format("Trying to createToken with slot %d with rac count %d with rac membership size %d with dc %s",
         my_slot, membership.getRacCount(), membership.getRacMembershipSize(), config.getDC()));
-    String payload = tokenManager.createToken(my_slot, membership.getRacCount(), membership.getRacMembershipSize(), config.getDC());
-    return factory.create(config.getAppName(), my_slot + hash, config.getInstanceName(), config.getHostname(), config.getHostIP(), config.getRac(), null, payload);
+    //String payload = tokenManager.createToken(my_slot, membership.getRacCount(), membership.getRacMembershipSize(), config.getDC());
+    // Get token from cassandra.yaml
+    String yamlToken = String.valueOf(config.getCassYamlProperty("initial_token"));
+    return factory.create(config.getAppName(), my_slot + hash, config.getInstanceName(), config.getHostname(), config.getHostIP(), config.getRac(), null, yamlToken);
 
   }
 

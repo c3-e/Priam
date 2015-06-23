@@ -485,6 +485,10 @@ public class FakeConfiguration implements IConfiguration {
     return "";
   }
 
+  public Object getCassYamlProperty(String priamKey) {
+    return "";
+  }
+
   @Override
   public boolean getAutoBoostrap() {
     // TODO Auto-generated method stub

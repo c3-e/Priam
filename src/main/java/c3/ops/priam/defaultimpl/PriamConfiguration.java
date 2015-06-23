@@ -30,8 +30,12 @@ import com.google.inject.Singleton;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.Yaml;
 
+import java.io.FileInputStream;
 import java.util.List;
+import java.util.Map;
 
 @Singleton
 public class PriamConfiguration implements IConfiguration {
@@ -205,6 +209,7 @@ public class PriamConfiguration implements IConfiguration {
   private final ICredential provider;
   //    private String DEFAULT_AVAILABILITY_ZONES = "";
   private List<String> DEFAULT_AVAILABILITY_ZONES = ImmutableList.of();
+  private Map YAML_PROPERTY_MAP;
 
   @Inject
   public PriamConfiguration(ICredential provider, IConfigSource config) {
@@ -233,6 +238,7 @@ public class PriamConfiguration implements IConfiguration {
     this.config.intialize(Ring_Name, REGION);
     setDefaultRACList(REGION);
     populateProps();
+    populateYamlPropertyMap();
     SystemUtils.createDirs(getBackupCommitLogLocation());
     SystemUtils.createDirs(getCommitLogLocation());
     SystemUtils.createDirs(getCacheLocation());
@@ -264,6 +270,21 @@ public class PriamConfiguration implements IConfiguration {
       logger.error("Failed to determine Ring name.", e);
       return null;
     }
+  }
+
+  /**
+   * Populate yaml file properties
+   */
+  private void populateYamlPropertyMap() {
+    DumperOptions options = new DumperOptions();
+    options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+    Yaml yaml = new Yaml(options);
+    try {
+      this.YAML_PROPERTY_MAP = (Map) yaml.load(new FileInputStream(this.getYamlLocation()));
+    } catch (Exception e) {
+      logger.info(e.getMessage());
+    }
+
   }
 
   /**
@@ -770,6 +791,11 @@ public class PriamConfiguration implements IConfiguration {
     return config.get(CONFIG_CREATE_NEW_TOKEN_ENABLE, true);
   }
 
+  @Override
+  public Object getCassYamlProperty(String Key) {
+    return this.YAML_PROPERTY_MAP.get(Key);
+  }
+
   private class GetRingName extends RetryableCallable<String> {
     private static final int NUMBER_OF_RETRIES = 15;
     private static final long WAIT_TIME = 30000;
@@ -803,5 +829,4 @@ public class PriamConfiguration implements IConfiguration {
       throw new IllegalStateException("Couldn't determine Ring name");
     }
   }
-
 }
