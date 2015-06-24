@@ -14,7 +14,7 @@ export OPSAGENT_CONF=/opt/opsagent/conf
 export OPSAGENT_OWNR=cassandra
 
 log_file=/var/log/opsagent/opsagent.log
-pid_file=/opt/opsagent/opsagent.pid
+pid_file=/var/run/opsagent.pid
 OPSAGENT_PROG=/opt/opsagent/bin/opsagent
 
 case "$1" in
