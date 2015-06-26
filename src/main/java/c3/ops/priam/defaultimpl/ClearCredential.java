@@ -23,6 +23,7 @@ import org.apache.cassandra.io.util.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.util.Properties;
 
@@ -65,5 +66,14 @@ public class ClearCredential implements ICredential {
         // NOP
       }
     };
+  }
+
+  public static boolean isClearCredentials(){
+    if (new File(CRED_FILE).exists()) {
+      logger.info("Using credential from {}.", CRED_FILE);
+      return true;
+    } else {
+      return false;
+    }
   }
 }
