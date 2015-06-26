@@ -3,7 +3,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>c3.ops.cassandra</groupId>
-  <artifactId>ops-agent</artifactId>
+  <artifactId>opsagent</artifactId>
   <version>1.0</version>
   <properties>
     <app.home>/opt/opsagent</app.home>
@@ -271,8 +271,8 @@
               <configuration>true</configuration>
               <sources>
                 <source>
-                  <location>${project.basedir}/src/main/resources/Opsagent.properties</location>
-                  <destination>Opsagent.properties.sample</destination>
+                  <location>${project.basedir}/src/main/resources/opsagent.properties</location>
+                  <destination>opsagent.properties.sample</destination>
                 </source>
                 <source>
                   <location>${project.basedir}/src/main/resources/log4j.properties</location>
