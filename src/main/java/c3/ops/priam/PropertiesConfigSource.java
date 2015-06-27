@@ -21,7 +21,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class PropertiesConfigSource extends AbstractConfigSource {
   private static final Logger logger = LoggerFactory.getLogger(PropertiesConfigSource.class.getName());
 
-  private static final String DEFAULT_PRIAM_PROPERTIES = "Opsagent.properties";
+  private static final String DEFAULT_PRIAM_PROPERTIES = "opsagent.properties";
 
   private final Map<String, String> data = Maps.newConcurrentMap();
   private final String priamFile;
@@ -29,7 +29,7 @@ public class PropertiesConfigSource extends AbstractConfigSource {
   public PropertiesConfigSource() {
     String userPriamFile = System.getProperty("opsagent.opsagentProperties");
     if (userPriamFile != null && new File(userPriamFile).exists()) {
-      logger.info("Using Opsagent.properties from {}.", userPriamFile);
+      logger.info("Using opsagent.properties from {}.", userPriamFile);
       this.priamFile = userPriamFile;
     } else {
       this.priamFile = DEFAULT_PRIAM_PROPERTIES;
