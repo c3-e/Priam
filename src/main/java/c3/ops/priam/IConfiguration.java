@@ -431,4 +431,5 @@ public interface IConfiguration {
 
   public boolean isCreateNewTokenEnable();
 
+  public boolean isDebugBackupEnabled();
 }

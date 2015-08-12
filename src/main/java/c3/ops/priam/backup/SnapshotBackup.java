@@ -120,7 +120,9 @@ public class SnapshotBackup extends AbstractBackup {
 
     } finally {
       try {
-        clearSnapshot(snapshotName);
+        if (config.isDebugBackupEnabled()){
+          clearSnapshot(snapshotName);
+        }
       } catch (Exception e) {
         logger.error(e.getMessage(), e);
       }

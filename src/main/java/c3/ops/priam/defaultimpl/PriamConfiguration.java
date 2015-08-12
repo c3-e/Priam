@@ -82,6 +82,7 @@ public class PriamConfiguration implements IConfiguration {
   private static final String CONFIG_CREATE_NEW_TOKEN_ENABLE = PRIAM_PRE + ".create.new.token.enable";
 
   // Backup and Restore
+  private static final String CONFIG_BACKUP_DEBUG = PRIAM_PRE + ".backup.debug";
   private static final String CONFIG_BACKUP_THREADS = PRIAM_PRE + ".backup.threads";
   private static final String CONFIG_RESTORE_PREFIX = PRIAM_PRE + ".restore.prefix";
   private static final String CONFIG_INCR_BK_ENABLE = PRIAM_PRE + ".backup.incremental.enable";
@@ -826,5 +827,10 @@ public class PriamConfiguration implements IConfiguration {
       logger.warn("Couldn't determine Ring name");
       throw new IllegalStateException("Couldn't determine Ring name");
     }
+  }
+
+  @Override
+  public boolean isDebugBackupEnabled() {
+    return config.get(CONFIG_BACKUP_DEBUG, false);
   }
 }
