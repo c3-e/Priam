@@ -13,6 +13,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.Socket;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -113,33 +114,51 @@ public class CassandraProcessManager implements ICassandraProcess {
 
 
   public void stop() throws IOException {
-    logger.info("Stopping cassandra server ....");
-    List<String> command = Lists.newArrayList();
-    if (!"root".equals(System.getProperty("user.name"))) {
-      command.add(SUDO_STRING);
-      command.add("-n");
-      command.add("-E");
-    }
-    for (String param : config.getCassStopScript().split(" ")) {
-      if (StringUtils.isNotBlank(param))
-        command.add(param);
-    }
-    ProcessBuilder stopCass = new ProcessBuilder(command);
-    stopCass.directory(new File("/"));
-    stopCass.redirectErrorStream(true);
-    Process stopper = stopCass.start();
-
-    sleeper.sleepQuietly(SCRIPT_EXECUTE_WAIT_TIME_MS);
-    try {
-      int code = stopper.exitValue();
-      if (code == 0)
-        logger.info("Cassandra server has been stopped");
-      else {
-        logger.error("Unable to stop cassandra server. Error code: {}", code);
-        logProcessOutput(stopper);
+    if (!config.doesCassandraStartManually()) {
+      logger.info("Stopping cassandra server ....");
+      List<String> command = Lists.newArrayList();
+      if (!"root".equals(System.getProperty("user.name"))) {
+        command.add(SUDO_STRING);
+        command.add("-n");
+        command.add("-E");
       }
-    } catch (Exception e) {
-      logger.warn("couldn't shut down cassandra correctly", e);
+      for (String param : config.getCassStopScript().split(" ")) {
+        if (StringUtils.isNotBlank(param))
+          command.add(param);
+      }
+      ProcessBuilder stopCass = new ProcessBuilder(command);
+      stopCass.directory(new File("/"));
+      stopCass.redirectErrorStream(true);
+      Process stopper = stopCass.start();
+
+      sleeper.sleepQuietly(SCRIPT_EXECUTE_WAIT_TIME_MS);
+      try {
+        int code = stopper.exitValue();
+        if (code == 0)
+          logger.info("Cassandra server has been stopped");
+        else {
+          logger.error("Unable to stop cassandra server. Error code: {}", code);
+          logProcessOutput(stopper);
+        }
+      } catch (Exception e) {
+        logger.warn("couldn't shut down cassandra correctly", e);
+      }
     }
+  }
+
+  public boolean status() throws IOException {
+    boolean status = false;
+    try
+    {
+      Socket localSocket = new Socket("127.0.0.1",config.getJmxPort());
+      status = true;
+      logger.info("Cassandra Process is running");
+    }
+    catch (IOException e)
+    {
+      logger.info("Cassandra Process is not running");
+    }
+
+    return status;
   }
 }

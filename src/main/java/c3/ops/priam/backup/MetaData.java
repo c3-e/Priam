@@ -22,9 +22,11 @@ import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.name.Named;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,12 +46,13 @@ public class MetaData {
   private final List<String> metaRemotePaths = new ArrayList<String>();
   private final IBackupFileSystem fs;
 
+
   @Inject
   public MetaData(Provider<AbstractBackupPath> pathFactory, @Named("backup") IBackupFileSystem fs)
-
   {
     this.pathFactory = pathFactory;
     this.fs = fs;
+
   }
 
   public static void addObserver(IMessageObserver observer) {
@@ -66,8 +69,13 @@ public class MetaData {
     FileWriter fr = new FileWriter(metafile);
     try {
       JSONArray jsonObj = new JSONArray();
-      for (AbstractBackupPath filePath : bps)
-        jsonObj.add(filePath.getRemotePath());
+      for (AbstractBackupPath filePath : bps){
+        JSONObject obj = new JSONObject();
+        String file = filePath.getRemotePath();
+        obj.put("FilePath", file);
+        obj.put("md5", filePath.getChecksum());
+        jsonObj.add(obj);
+      }
       fr.write(jsonObj.toJSONString());
     } finally {
       IOUtils.closeQuietly(fr);
@@ -102,11 +110,13 @@ public class MetaData {
       JSONArray jsonObj = (JSONArray) new JSONParser().parse(new FileReader(file));
       for (int i = 0; i < jsonObj.size(); i++) {
         AbstractBackupPath p = pathFactory.get();
-        p.parseRemote((String) jsonObj.get(i));
+        JSONObject obj = (JSONObject) jsonObj.get(i);
+        p.parseRemote((String) obj.get("FilePath"));
+        p.setRemoteFileChecksum((String) obj.get("md5"));
         files.add(p);
       }
     } catch (Exception ex) {
-      logger.error("Error downloading the Meta data try with a diffrent date...", ex);
+      logger.error("Error downloading the Meta data try with a different date...", ex);
     }
     return files;
   }
@@ -143,5 +153,4 @@ public class MetaData {
   protected void addToRemotePath(String remotePath) {
     metaRemotePaths.add(remotePath);
   }
-
 }

@@ -5,3 +5,6 @@ chmod +x /etc/init.d/opsagent
 chkconfig --add opsagent
 
 chmod +x /opt/opsagent/bin/opsagent
+
+touch /var/run/opsagent.pid
+chown -R cassandra.cassandra /var/run/opsagent.pid

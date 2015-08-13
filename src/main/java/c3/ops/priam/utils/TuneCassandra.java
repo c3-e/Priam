@@ -44,15 +44,16 @@ public class TuneCassandra extends Task {
 
   public void execute() throws IOException {
     boolean isDone = false;
-    //TODO : manage cassandra yaml
-//		while (!isDone) {
-//			try {
-//				tuner.writeAllProperties(config.getYamlLocation(), null, config.getSeedProviderName());
-//				isDone = true;
-//			} catch (IOException e) {
-//				LOGGER.info("Fail wrting cassandra.yml file. Retry again! " + e.getMessage());
-//			}
-//		}
+    if(!config.doesCassandraConfiguredManually()){
+      while (!isDone) {
+        try {
+          tuner.writeAllProperties(config.getYamlLocation(), null, config.getSeedProviderName());
+          isDone = true;
+        } catch (IOException e) {
+          LOGGER.info("Fail wrting cassandra.yml file. Retry again! " + e.getMessage());
+        }
+      }
+    }
     isDone = true;
   }
 

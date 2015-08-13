@@ -21,6 +21,7 @@ import c3.ops.priam.identity.InstanceIdentity;
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 
+import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.List;
 
@@ -36,7 +37,7 @@ public class S3BackupPath extends AbstractBackupPath {
   public static final int NUM_PATH_ELEMENTS_CASS_1_0 = 8;
 
   @Inject
-  public S3BackupPath(IConfiguration config, InstanceIdentity factory) {
+  public S3BackupPath(IConfiguration config, InstanceIdentity factory) throws NoSuchAlgorithmException {
     super(config, factory);
   }
 

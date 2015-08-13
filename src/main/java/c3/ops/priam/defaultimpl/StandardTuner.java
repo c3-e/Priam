@@ -172,15 +172,18 @@ public class StandardTuner implements CassandraTuner {
   }
 
   public void updateAutoBootstrap(String yamlFile, boolean autobootstrap) throws IOException {
-    DumperOptions options = new DumperOptions();
-    options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-    Yaml yaml = new Yaml(options);
-    @SuppressWarnings("rawtypes")
-    Map map = (Map) yaml.load(new FileInputStream(yamlFile));
-    //Dont bootstrap in restore mode
-    map.put("auto_bootstrap", autobootstrap);
-    logger.info("Updating yaml" + yaml.dump(map));
-    yaml.dump(map, new FileWriter(yamlFile));
+
+    if(!config.doesCassandraConfiguredManually()){
+      DumperOptions options = new DumperOptions();
+      options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+      Yaml yaml = new Yaml(options);
+      @SuppressWarnings("rawtypes")
+      Map map = (Map) yaml.load(new FileInputStream(yamlFile));
+      //Dont bootstrap in restore mode
+      map.put("auto_bootstrap", autobootstrap);
+      logger.info("Updating yaml" + yaml.dump(map));
+      yaml.dump(map, new FileWriter(yamlFile));
+    }
   }
 
   public void addExtraCassParams(Map map) {

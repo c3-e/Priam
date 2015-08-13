@@ -375,6 +375,11 @@ public interface IConfiguration {
   public boolean doesCassandraStartManually();
 
   /**
+   * @return true/false, if Cassandra needs to be configured manually
+   */
+  public boolean doesCassandraConfiguredManually();
+
+  /**
    * @return possible values: all, dc, none
    */
   public String getInternodeCompression();
@@ -432,4 +437,6 @@ public interface IConfiguration {
   public boolean isCreateNewTokenEnable();
 
   public boolean isDebugBackupEnabled();
+
+  public boolean isValidateBackupEnabled();
 }

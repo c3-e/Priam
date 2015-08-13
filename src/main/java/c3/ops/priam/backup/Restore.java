@@ -113,61 +113,66 @@ public class Restore extends AbstractRestore {
     if (config.getRestoreKeySpaces().size() == 0)
       cassProcess.stop();
 
-    // Cleanup local data
-    SystemUtils.cleanupDir(config.getDataFileLocation(), config.getRestoreKeySpaces());
+    if(cassProcess.status()){
+      Exception e = new BackupRestoreException("Cassandra Process is still running.");
+      logger.error("Aborting Restore. Stop cassandra process before ", e);
+    }
+    else{
+      // Cleanup local data
+      SystemUtils.cleanupDir(config.getDataFileLocation(), config.getRestoreKeySpaces());
 
-    // Try and read the Meta file.
-    List<AbstractBackupPath> metas = Lists.newArrayList();
-    String prefix = "";
-    if (StringUtils.isNotBlank(config.getRestorePrefix()))
-      prefix = config.getRestorePrefix();
-    else
-      prefix = config.getBackupPrefix();
-    logger.info("Looking for meta file here:  " + prefix);
-    Iterator<AbstractBackupPath> backupfiles = fs.list(prefix, startTime, endTime);
-    while (backupfiles.hasNext()) {
-      AbstractBackupPath path = backupfiles.next();
-      if (path.type == BackupFileType.META) {
-        //Since there are now meta file for incrementals as well as snapshot, we need to find the correct one (i.e. the snapshot meta file (meta.json))
-        if (path.getFileName().equalsIgnoreCase("meta.json")) {
-          metas.add(path);
+      // Try and read the Meta file.
+      List<AbstractBackupPath> metas = Lists.newArrayList();
+      String prefix = "";
+      if (StringUtils.isNotBlank(config.getRestorePrefix()))
+        prefix = config.getRestorePrefix();
+      else
+        prefix = config.getBackupPrefix();
+      logger.info("Looking for meta file here:  " + prefix);
+      Iterator<AbstractBackupPath> backupfiles = fs.list(prefix, startTime, endTime);
+      while (backupfiles.hasNext()) {
+        AbstractBackupPath path = backupfiles.next();
+        if (path.type == BackupFileType.META) {
+          //Since there are now meta file for incrementals as well as snapshot, we need to find the correct one (i.e. the snapshot meta file (meta.json))
+          if (path.getFileName().equalsIgnoreCase("meta.json")) {
+            metas.add(path);
+          }
         }
 
       }
 
-    }
-
-    if (metas.size() == 0) {
-      logger.info("[cass_backup] No snapshot meta file found, Restore Failed.");
-      assert false : "[cass_backup] No snapshots found, Restore Failed.";
-      return;
-    }
+      if (metas.size() == 0) {
+        logger.info("[cass_backup] No snapshot meta file found, Restore Failed.");
+        assert false : "[cass_backup] No snapshots found, Restore Failed.";
+        return;
+      }
 
 
-    Collections.sort(metas);
-    AbstractBackupPath meta = Iterators.getLast(metas.iterator());
-    logger.info("Snapshot Meta file for restore " + meta.getRemotePath());
+      Collections.sort(metas);
+      AbstractBackupPath meta = Iterators.getLast(metas.iterator());
+      logger.info("Snapshot Meta file for restore " + meta.getRemotePath());
 
-    // Download snapshot which is listed in the meta file.
-    List<AbstractBackupPath> snapshots = metaData.get(meta);
-    download(snapshots.iterator(), BackupFileType.SNAP);
+      // Download snapshot which is listed in the meta file.
+      List<AbstractBackupPath> snapshots = metaData.get(meta);
+      download(snapshots.iterator(), BackupFileType.SNAP);
 
-    logger.info("Downloading incrementals");
-    // Download incrementals (SST).
-    Iterator<AbstractBackupPath> incrementals = fs.list(prefix, meta.time, endTime);
-    download(incrementals, BackupFileType.SST);
+      logger.info("Downloading incrementals");
+      // Download incrementals (SST).
+      Iterator<AbstractBackupPath> incrementals = fs.list(prefix, meta.time, endTime);
+      download(incrementals, BackupFileType.SST);
 
-    //Downloading CommitLogs
-    if (config.isBackingUpCommitLogs())  //TODO: will change to isRestoringCommitLogs()
-    {
-      logger.info("Delete all backuped commitlog files in " + config.getBackupCommitLogLocation());
-      SystemUtils.cleanupDir(config.getBackupCommitLogLocation(), null);
+      //Downloading CommitLogs
+      if (config.isBackingUpCommitLogs())  //TODO: will change to isRestoringCommitLogs()
+      {
+        logger.info("Delete all backuped commitlog files in " + config.getBackupCommitLogLocation());
+        SystemUtils.cleanupDir(config.getBackupCommitLogLocation(), null);
 
-      logger.info("Delete all commitlog files in " + config.getCommitLogLocation());
-      SystemUtils.cleanupDir(config.getCommitLogLocation(), null);
+        logger.info("Delete all commitlog files in " + config.getCommitLogLocation());
+        SystemUtils.cleanupDir(config.getCommitLogLocation(), null);
 
-      Iterator<AbstractBackupPath> commitLogPathIterator = fs.list(prefix, meta.time, endTime);
-      download(commitLogPathIterator, BackupFileType.CL, config.maxCommitLogsRestore());
+        Iterator<AbstractBackupPath> commitLogPathIterator = fs.list(prefix, meta.time, endTime);
+        download(commitLogPathIterator, BackupFileType.CL, config.maxCommitLogsRestore());
+      }
     }
   }
 

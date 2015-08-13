@@ -79,10 +79,12 @@ public class PriamConfiguration implements IConfiguration {
   private static final String CONFIG_TARGET_KEYSPACE_NAME = PRIAM_PRE + ".target.keyspace";
   private static final String CONFIG_TARGET_COLUMN_FAMILY_NAME = PRIAM_PRE + ".target.columnfamily";
   private static final String CONFIG_CASS_MANUAL_START_ENABLE = PRIAM_PRE + ".cass.manual.start.enable";
+  private static final String CONFIG_CASS_MANUAL_CONFIG_ENABLE = PRIAM_PRE + ".cass.manual.config.enable";
   private static final String CONFIG_CREATE_NEW_TOKEN_ENABLE = PRIAM_PRE + ".create.new.token.enable";
 
   // Backup and Restore
   private static final String CONFIG_BACKUP_DEBUG = PRIAM_PRE + ".backup.debug";
+  private static final String CONFIG_BACKUP_VALIDATE = PRIAM_PRE + ".backup.validate";
   private static final String CONFIG_BACKUP_THREADS = PRIAM_PRE + ".backup.threads";
   private static final String CONFIG_RESTORE_PREFIX = PRIAM_PRE + ".restore.prefix";
   private static final String CONFIG_INCR_BK_ENABLE = PRIAM_PRE + ".backup.incremental.enable";
@@ -655,6 +657,12 @@ public class PriamConfiguration implements IConfiguration {
     return config.get(CONFIG_CASS_MANUAL_START_ENABLE, false);
   }
 
+  @Override
+  public boolean doesCassandraConfiguredManually() {
+    return config.get(CONFIG_CASS_MANUAL_CONFIG_ENABLE, false);
+  }
+
+
   public String getInternodeCompression() {
     return config.get(CONFIG_INTERNODE_COMPRESSION, DEFAULT_INTERNODE_COMPRESSION);
   }
@@ -832,5 +840,10 @@ public class PriamConfiguration implements IConfiguration {
   @Override
   public boolean isDebugBackupEnabled() {
     return config.get(CONFIG_BACKUP_DEBUG, false);
+  }
+
+  @Override
+  public boolean isValidateBackupEnabled() {
+    return config.get(CONFIG_BACKUP_VALIDATE, false);
   }
 }
