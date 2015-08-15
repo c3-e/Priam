@@ -51,7 +51,7 @@ public class TestBackupFile {
   }
 
   @Test
-  public void testBackupFileCreation() throws ParseException {
+  public void testBackupFileCreation() throws ParseException, IOException {
     // Test snapshot file
     String snapshotfile = "target/data/Keyspace1/Standard1/snapshots/201108082320/Keyspace1-Standard1-ia-5-Data.db";
     S3BackupPath backupfile = injector.getInstance(S3BackupPath.class);
@@ -67,7 +67,7 @@ public class TestBackupFile {
   }
 
   @Test
-  public void testIncBackupFileCreation() throws ParseException {
+  public void testIncBackupFileCreation() throws ParseException, IOException {
     // Test incremental file
     File bfile = new File("target/data/Keyspace1/Standard1/Keyspace1-Standard1-ia-5-Data.db");
     S3BackupPath backupfile = injector.getInstance(S3BackupPath.class);
@@ -84,7 +84,7 @@ public class TestBackupFile {
   }
 
   @Test
-  public void testMetaFileCreation() throws ParseException {
+  public void testMetaFileCreation() throws ParseException, IOException {
     // Test snapshot file
     String filestr = "cass/data/1234567.meta";
     File bfile = new File(filestr);

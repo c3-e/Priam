@@ -506,4 +506,18 @@ public class FakeConfiguration implements IConfiguration {
     return true;  //allow Junit test to create new tokens
   }
 
+  @Override
+  public boolean isValidateBackupEnabled() {
+    return true;  //allow Junit test to create new tokens
+  }
+
+  @Override
+  public boolean isDebugBackupEnabled() {
+    return true;  //allow Junit test to create new tokens
+  }
+
+  @Override
+  public boolean doesCassandraConfiguredManually() {
+    return true;  //allow Junit test to create new tokens
+  }
 }

@@ -11,7 +11,7 @@ public final class PropertiesConfigSourceTest {
 
   @Test
   public void readFile() {
-    PropertiesConfigSource configSource = new PropertiesConfigSource("conf/Opsagent.properties");
+    PropertiesConfigSource configSource = new PropertiesConfigSource("conf/opsagent.properties");
     configSource.intialize("ringName", "region");
 
     Assert.assertEquals("\"/tmp/commitlog\"", configSource.get("Priam.backup.commitlog.location"));
@@ -22,7 +22,7 @@ public final class PropertiesConfigSourceTest {
 
   @Test
   public void updateKey() {
-    PropertiesConfigSource configSource = new PropertiesConfigSource("conf/Opsagent.properties");
+    PropertiesConfigSource configSource = new PropertiesConfigSource("conf/opsagent.properties");
     configSource.intialize("ringName", "region");
 
     // File has 12 lines, but line 6 is "Priam.jmx.port7501", so it gets filtered out with empty string check.

@@ -13,6 +13,7 @@ import junit.framework.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
 
 public class StreamingTest {
   public void teststream() throws IOException, InterruptedException {
@@ -29,7 +30,7 @@ public class StreamingTest {
   }
 
   @Test
-  public void testAbstractPath() {
+  public void testAbstractPath() throws NoSuchAlgorithmException {
     Injector injector = Guice.createInjector(new BRTestModule());
     IConfiguration conf = injector.getInstance(IConfiguration.class);
     InstanceIdentity factory = injector.getInstance(InstanceIdentity.class);
