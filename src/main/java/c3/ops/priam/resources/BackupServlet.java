@@ -180,7 +180,7 @@ public class BackupServlet {
   }
 
   @GET
-  @Path("/status")
+  @Path("/health/1")
   public Response status() throws Exception {
     int restoreTCount = restoreObj.getActiveCount();
     logger.debug("Thread counts for backup is: %d", restoreTCount);
