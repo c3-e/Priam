@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Map;
 import java.util.Properties;
@@ -51,7 +52,15 @@ public class PropertiesConfigSource extends AbstractConfigSource {
   public void intialize(final String ringName, final String region) {
     super.intialize(ringName, region);
     Properties properties = new Properties();
-    URL url = PropertiesConfigSource.class.getClassLoader().getResource(priamFile);
+    URL url = null;
+    // url = PropertiesConfigSource.class.getClassLoader().getResource(priamFile);
+    try{
+       url = new URL("file:/Users/amitsalunke/Downloads/opsagent.properties");
+    }
+    catch(Exception e){
+
+    }
+
     if (url != null) {
       try {
         properties.load(url.openStream());

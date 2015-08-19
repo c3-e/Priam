@@ -36,6 +36,8 @@ import org.yaml.snakeyaml.Yaml;
 import java.io.FileInputStream;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Singleton
 public class PriamConfiguration implements IConfiguration {
@@ -208,7 +210,6 @@ public class PriamConfiguration implements IConfiguration {
   private final int DEFAULT_HINTS_THROTTLE_KB = 1024; //default value from 1.2 yaml
   private final String DEFAULT_INTERNODE_COMPRESSION = "all";  //default value from 1.2 yaml
   private final IConfigSource config;
-  private final String BLANK = "";
   private final ICredential provider;
   //    private String DEFAULT_AVAILABILITY_ZONES = "";
   private List<String> DEFAULT_AVAILABILITY_ZONES = ImmutableList.of();
@@ -826,8 +827,13 @@ public class PriamConfiguration implements IConfiguration {
       for (Reservation resr : res.getReservations()) {
         for (Instance ins : resr.getInstances()) {
           for (com.amazonaws.services.ec2.model.Tag tag : ins.getTags()) {
-            if (tag.getKey().equals("ring_name"))
-              return tag.getValue();
+            if (tag.getKey().equals("host_name")){
+              String hostName = tag.getValue();
+              Pattern pattern = Pattern.compile("^(\\w+\\-\\w+)\\-\\w+\\-\\d+.*+$");
+              Matcher matcher = pattern.matcher(hostName);
+              if (matcher.find())
+                return matcher.group(1);
+            }
           }
         }
       }
