@@ -52,15 +52,7 @@ public class PropertiesConfigSource extends AbstractConfigSource {
   public void intialize(final String ringName, final String region) {
     super.intialize(ringName, region);
     Properties properties = new Properties();
-    URL url = null;
-    // url = PropertiesConfigSource.class.getClassLoader().getResource(priamFile);
-    try{
-       url = new URL("file:/Users/amitsalunke/Downloads/opsagent.properties");
-    }
-    catch(Exception e){
-
-    }
-
+    URL url = PropertiesConfigSource.class.getClassLoader().getResource(priamFile);
     if (url != null) {
       try {
         properties.load(url.openStream());
