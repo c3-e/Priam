@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>c3.ops.cassandra</groupId>
   <artifactId>opsagent</artifactId>
-  <version>1.1</version>
+  <version>1.2</version>
   <properties>
     <app.home>/opt/opsagent</app.home>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
