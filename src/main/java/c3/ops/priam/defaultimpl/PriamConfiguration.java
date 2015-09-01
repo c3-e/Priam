@@ -165,6 +165,7 @@ public class PriamConfiguration implements IConfiguration {
   private final String PUBLIC_IP;
   private final String RAC = SystemUtils.getDataFromUrl("http://169.254.169.254/latest/meta-data/placement/availability-zone");
   private final String LOCAL_HOSTNAME = SystemUtils.getDataFromUrl("http://169.254.169.254/latest/meta-data/local-hostname").trim();
+
   private final String LOCAL_IP = SystemUtils.getDataFromUrl("http://169.254.169.254/latest/meta-data/local-ipv4").trim();
   private final String INSTANCE_ID = SystemUtils.getDataFromUrl("http://169.254.169.254/latest/meta-data/instance-id").trim();
   private final String INSTANCE_TYPE = SystemUtils.getDataFromUrl("http://169.254.169.254/latest/meta-data/instance-type").trim();
@@ -211,6 +212,7 @@ public class PriamConfiguration implements IConfiguration {
   private final String DEFAULT_INTERNODE_COMPRESSION = "all";  //default value from 1.2 yaml
   private final IConfigSource config;
   private final ICredential provider;
+  private final String InstanceHostname;
   //    private String DEFAULT_AVAILABILITY_ZONES = "";
   private List<String> DEFAULT_AVAILABILITY_ZONES = ImmutableList.of();
   private Map YAML_PROPERTY_MAP;
@@ -230,6 +232,8 @@ public class PriamConfiguration implements IConfiguration {
     } catch (RuntimeException ex) {
       // swallow
     }
+
+    this.InstanceHostname = SystemUtils.executeCommand("/bin/hostname");
     this.PUBLIC_HOSTNAME = p_hostname;
     this.PUBLIC_IP = p_ip;
     this.provider = provider;
@@ -456,7 +460,7 @@ public class PriamConfiguration implements IConfiguration {
 
   @Override
   public String getHostname() {
-    if (this.isVpcRing()) return LOCAL_IP;
+    if (this.isVpcRing()) return InstanceHostname;
     else return PUBLIC_HOSTNAME;
   }
 
@@ -804,6 +808,16 @@ public class PriamConfiguration implements IConfiguration {
     return this.YAML_PROPERTY_MAP.get(Key);
   }
 
+  @Override
+  public boolean isDebugBackupEnabled() {
+    return config.get(CONFIG_BACKUP_DEBUG, false);
+  }
+
+  @Override
+  public boolean isValidateBackupEnabled() {
+    return config.get(CONFIG_BACKUP_VALIDATE, false);
+  }
+
   private class GetRingName extends RetryableCallable<String> {
     private static final int NUMBER_OF_RETRIES = 15;
     private static final long WAIT_TIME = 30000;
@@ -827,9 +841,9 @@ public class PriamConfiguration implements IConfiguration {
       for (Reservation resr : res.getReservations()) {
         for (Instance ins : resr.getInstances()) {
           for (com.amazonaws.services.ec2.model.Tag tag : ins.getTags()) {
-            if (tag.getKey().equals("host_name")){
+            if (tag.getKey().equals("host_name")) {
               String hostName = tag.getValue();
-              Pattern pattern = Pattern.compile("^(\\w+\\-\\w+)\\-\\w+\\-\\d+.*+$");
+              Pattern pattern = Pattern.compile("^(\\w+\\-\\w+)\\-cass\\-\\d+.*+$");
               Matcher matcher = pattern.matcher(hostName);
               if (matcher.find())
                 return matcher.group(1);
@@ -841,15 +855,5 @@ public class PriamConfiguration implements IConfiguration {
       logger.warn("Couldn't determine Ring name");
       throw new IllegalStateException("Couldn't determine Ring name");
     }
-  }
-
-  @Override
-  public boolean isDebugBackupEnabled() {
-    return config.get(CONFIG_BACKUP_DEBUG, false);
-  }
-
-  @Override
-  public boolean isValidateBackupEnabled() {
-    return config.get(CONFIG_BACKUP_VALIDATE, false);
   }
 }

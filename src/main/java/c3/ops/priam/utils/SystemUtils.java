@@ -140,4 +140,35 @@ public class SystemUtils {
     }
   }
 
+  public static String executeCommand(String command) {
+    String output = "";
+    try {
+      Process process = Runtime.getRuntime().exec(command);
+
+      BufferedReader reader = new BufferedReader(
+          new InputStreamReader(process.getInputStream()));
+      String line;
+      while ((line = reader.readLine()) != null) {
+        output += line;
+      }
+      reader.close();
+      return output;
+    } catch (Exception e) {
+      logger.error("Exception thrown while executing ", e);
+      throw new RuntimeException(e);
+    }
+
+  }
+
+
+  public static Process osCommand(String command) throws Exception {
+    Process process = null;
+    try {
+      process = Runtime.getRuntime().exec(command);
+
+    } catch (Exception e) {
+      logger.error("Exception thrown while executing ", e);
+    }
+    return process;
+  }
 }
