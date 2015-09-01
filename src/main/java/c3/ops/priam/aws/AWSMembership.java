@@ -77,8 +77,8 @@ public class AWSMembership implements IMembership {
   @Override
   public List<String> getRacMembership() {
     List<String> values = new ArrayList<String>();
-    values.add(config.getRingName());
-    return getRunningInstancesByTags("ring_name", values);
+    values.add(config.getRingName() + "-cass");
+    return getRunningInstancesByTags("host_name", values);
   }
 
 
@@ -88,8 +88,8 @@ public class AWSMembership implements IMembership {
   @Override
   public int getRacMembershipSize() {
     List<String> values = new ArrayList<String>();
-    values.add(config.getRingName());
-    return getRunningInstancesByTags("ring_name", values).size();
+    values.add(config.getRingName() + "-cass*");
+    return getRunningInstancesByTags("host_name", values).size();
   }
 
   @Override
