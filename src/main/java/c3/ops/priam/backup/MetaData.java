@@ -22,7 +22,6 @@ import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.name.Named;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.json.simple.JSONArray;
@@ -48,8 +47,7 @@ public class MetaData {
 
 
   @Inject
-  public MetaData(Provider<AbstractBackupPath> pathFactory, @Named("backup") IBackupFileSystem fs)
-  {
+  public MetaData(Provider<AbstractBackupPath> pathFactory, @Named("backup") IBackupFileSystem fs) {
     this.pathFactory = pathFactory;
     this.fs = fs;
 
@@ -69,7 +67,7 @@ public class MetaData {
     FileWriter fr = new FileWriter(metafile);
     try {
       JSONArray jsonObj = new JSONArray();
-      for (AbstractBackupPath filePath : bps){
+      for (AbstractBackupPath filePath : bps) {
         JSONObject obj = new JSONObject();
         String file = filePath.getRemotePath();
         obj.put("FilePath", file);

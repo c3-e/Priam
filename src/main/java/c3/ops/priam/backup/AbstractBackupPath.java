@@ -18,6 +18,7 @@ package c3.ops.priam.backup;
 import c3.ops.priam.IConfiguration;
 import c3.ops.priam.aws.S3BackupPath;
 import c3.ops.priam.identity.InstanceIdentity;
+import c3.ops.priam.utils.SystemUtils;
 import com.google.inject.ImplementedBy;
 import org.apache.cassandra.io.util.FileUtils;
 import org.apache.cassandra.io.util.RandomAccessReader;
@@ -28,23 +29,22 @@ import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.RandomAccessFile;
 import java.text.ParseException;
 import java.util.Date;
 import java.util.regex.Pattern;
 
 @ImplementedBy(S3BackupPath.class)
 public abstract class AbstractBackupPath implements Comparable<AbstractBackupPath> {
-  private static final Logger logger = LoggerFactory.getLogger(AbstractBackupPath.class);
   public static final char PATH_SEP = File.separatorChar;
   public static final Pattern clPattern = Pattern.compile(".*CommitLog-(\\d{13}).log");
+  private static final Logger logger = LoggerFactory.getLogger(AbstractBackupPath.class);
   private static final String FMT = "yyyyMMddHHmm";
-  private final MessageDigest md;
   private static final DateTimeFormatter DATE_FORMAT = DateTimeFormat.forPattern(FMT);
   protected final InstanceIdentity factory;
-
 
   protected final IConfiguration config;
   protected BackupFileType type;
@@ -62,10 +62,9 @@ public abstract class AbstractBackupPath implements Comparable<AbstractBackupPat
   protected Date uploadedTs;
   protected String checksum;
 
-  public AbstractBackupPath(IConfiguration config, InstanceIdentity factory) throws NoSuchAlgorithmException {
+  public AbstractBackupPath(IConfiguration config, InstanceIdentity factory) {
     this.factory = factory;
     this.config = config;
-    this.md = MessageDigest.getInstance("MD5");
   }
 
   public static String formatDate(Date d) {
@@ -103,8 +102,7 @@ public abstract class AbstractBackupPath implements Comparable<AbstractBackupPat
       time = new Date(file.lastModified());
     this.fileName = file.getName();
     this.size = file.length();
-    this.checksum = calculateChecksum(localReader());
-
+    this.checksum = SystemUtils.md5(this.getBackupFile());
   }
 
   /**
@@ -147,36 +145,10 @@ public abstract class AbstractBackupPath implements Comparable<AbstractBackupPat
     return return_;
   }
 
-  protected String calculateChecksum(InputStream is) {
-    String checkSum = "";
-    try{
-      InputStream fis = is;
-      byte[] dataBytes = new byte[1024];
-
-      int nRead = 0;
-
-      while ((nRead = fis.read(dataBytes)) != -1) {
-        md.update(dataBytes, 0, nRead);
-      }
-
-      byte[] mdBytes = md.digest();
-
-      StringBuffer sb = new StringBuffer("");
-      for (int i = 0; i < mdBytes.length; i++) {
-        sb.append(Integer.toString((mdBytes[i] & 0xff) + 0x100, 16).substring(1));
-      }
-      checkSum = sb.toString();
-    }catch (IOException e){
-      logger.warn("Checksum calculation failed for -> "+this.getFileName());
-    }
-
-    return checkSum;
-  }
-
   /**
    * Parses a fully constructed remote path
    */
-  protected void setRemoteFileChecksum(String remoteFileChecksum){
+  protected void setRemoteFileChecksum(String remoteFileChecksum) {
     checksum = remoteFileChecksum;
   }
 
@@ -286,12 +258,12 @@ public abstract class AbstractBackupPath implements Comparable<AbstractBackupPat
     return this.uploadedTs;
   }
 
-  public String getChecksum() {
-    return this.checksum;
-  }
-
   public void setUploadedTs(Date uploadedTs) {
     this.uploadedTs = uploadedTs;
+  }
+
+  public String getChecksum() {
+    return this.checksum;
   }
 
   @Override

@@ -113,11 +113,10 @@ public class Restore extends AbstractRestore {
     if (config.getRestoreKeySpaces().size() == 0)
       cassProcess.stop();
 
-    if(cassProcess.status()){
+    if (cassProcess.status()) {
       Exception e = new BackupRestoreException("Cassandra Process is still running.");
       logger.error("Aborting Restore. Stop cassandra process before ", e);
-    }
-    else{
+    } else {
       // Cleanup local data
       SystemUtils.cleanupDir(config.getDataFileLocation(), config.getRestoreKeySpaces());
 

@@ -173,7 +173,7 @@ public class StandardTuner implements CassandraTuner {
 
   public void updateAutoBootstrap(String yamlFile, boolean autobootstrap) throws IOException {
 
-    if(!config.doesCassandraConfiguredManually()){
+    if (!config.doesCassandraConfiguredManually()) {
       DumperOptions options = new DumperOptions();
       options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
       Yaml yaml = new Yaml(options);

@@ -35,9 +35,9 @@ public class PriamGuiceModule extends AbstractModule {
     bind(IBackupFileSystem.class).annotatedWith(Names.named("incr_restore")).to(S3FileSystem.class);
     bind(IBackupFileSystem.class).annotatedWith(Names.named("backup_status")).to(S3FileSystem.class);
     //use aws credentials if property file exists else use IAM role
-    if(ClearCredential.isClearCredentials()){
+    if (ClearCredential.isClearCredentials()) {
       bind(ICredential.class).to(ClearCredential.class);
-    }else{
+    } else {
       bind(ICredential.class).to(IAMCredential.class);
     }
     bind(IDeadTokenRetriever.class).to(DeadTokenRetriever.class);

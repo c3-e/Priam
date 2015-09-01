@@ -7,8 +7,6 @@ import java.io.IOException;
 
 /**
  * Interface to aid in starting and stopping cassandra.
- *
- * @author jason brown
  */
 @ImplementedBy(CassandraProcessManager.class)
 public interface ICassandraProcess {

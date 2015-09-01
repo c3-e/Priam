@@ -44,12 +44,12 @@ public class CommitLogBackup {
     logger.info("Inside upload CommitLog files");
 
     if (StringUtils.isBlank(archivedDir)) {
-      throw new IllegalArgumentException("The archived commitlog director is blank or null");
+      throw new IllegalArgumentException("The archived commitlog directory is blank or null");
     }
 
     File archivedCommitLogDir = new File(archivedDir);
     if (!archivedCommitLogDir.exists()) {
-      throw new IllegalArgumentException("The archived commitlog director does not exist: " + archivedDir);
+      throw new IllegalArgumentException("The archived commitlog directory does not exist: " + archivedDir);
     }
 
     if (logger.isDebugEnabled()) {

@@ -22,14 +22,12 @@ import c3.ops.priam.scheduler.Task;
 import c3.ops.priam.utils.FifoQueue;
 import c3.ops.priam.utils.RetryableCallable;
 import c3.ops.priam.utils.Sleeper;
-import org.apache.cassandra.io.util.RandomAccessReader;
+import c3.ops.priam.utils.SystemUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.InputStream;
 import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -106,13 +104,13 @@ public abstract class AbstractRestore extends Task {
         fs.download(path, new FileOutputStream(restoreLocation), restoreLocation.getAbsolutePath());
         tracker.adjustAndAdd(path);
         // TODO: fix me -> if there is exception the why hang?
-        if(config.isValidateBackupEnabled()){
-          logger.info("Validating : "+restoreLocation);
+        if (config.isValidateBackupEnabled()) {
+          logger.info("Validating : " + restoreLocation);
           String original = path.getChecksum();
-          String calculated = path.calculateChecksum(new FileInputStream(restoreLocation));
-          if(!original.equals(calculated)){
+          String calculated = SystemUtils.md5(restoreLocation);
+          if (!original.equals(calculated)) {
             Exception e = new BackupRestoreException("Checksum mismatched.");
-            logger.error(original+" != "+calculated+". Checksum doesn't match for file "+restoreLocation, e);
+            logger.error(original + " != " + calculated + ". Checksum doesn't match for file " + restoreLocation, e);
           }
         }
         return count.decrementAndGet();

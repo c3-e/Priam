@@ -2,6 +2,7 @@ package c3.ops.priam.defaultimpl;
 
 import c3.ops.priam.ICassandraProcess;
 import c3.ops.priam.IConfiguration;
+import c3.ops.priam.utils.CassandraMonitor;
 import c3.ops.priam.utils.Sleeper;
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
@@ -13,7 +14,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.Socket;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -146,19 +146,7 @@ public class CassandraProcessManager implements ICassandraProcess {
     }
   }
 
-  public boolean status() throws IOException {
-    boolean status = false;
-    try
-    {
-      Socket localSocket = new Socket("127.0.0.1",config.getJmxPort());
-      status = true;
-      logger.info("Cassandra Process is running");
-    }
-    catch (IOException e)
-    {
-      logger.info("Cassandra Process is not running");
-    }
-
-    return status;
+  public boolean status() {
+    return CassandraMonitor.isCassadraStarted();
   }
 }

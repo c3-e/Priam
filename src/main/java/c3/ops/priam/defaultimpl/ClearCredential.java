@@ -56,6 +56,15 @@ public class ClearCredential implements ICredential {
     }
   }
 
+  public static boolean isClearCredentials() {
+    if (new File(CRED_FILE).exists()) {
+      logger.info("Using credential from {}.", CRED_FILE);
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   public AWSCredentialsProvider getAwsCredentialProvider() {
     return new AWSCredentialsProvider() {
       public AWSCredentials getCredentials() {
@@ -66,14 +75,5 @@ public class ClearCredential implements ICredential {
         // NOP
       }
     };
-  }
-
-  public static boolean isClearCredentials(){
-    if (new File(CRED_FILE).exists()) {
-      logger.info("Using credential from {}.", CRED_FILE);
-      return true;
-    } else {
-      return false;
-    }
   }
 }
