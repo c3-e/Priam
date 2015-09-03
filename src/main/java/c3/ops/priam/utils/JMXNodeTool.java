@@ -177,6 +177,7 @@ public class JMXNodeTool extends NodeProbe {
     object.put("heap_memory_mb", memUsed + "/" + memMax);
     object.put("data_center", getDataCenter());
     object.put("rack", getRack());
+    object.put("exceptions", getExceptionCount());
     return object;
   }
 

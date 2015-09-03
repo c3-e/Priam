@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
@@ -43,7 +44,7 @@ public class CassandraConfig {
     this.priamServer = server;
   }
 
-  @GET
+  @POST
   @Path("/get_seeds")
   public Response getSeeds() {
     try {
@@ -58,7 +59,7 @@ public class CassandraConfig {
     return Response.status(500).build();
   }
 
-  @GET
+  @POST
   @Path("/get_token")
   public Response getToken() {
     try {
@@ -73,7 +74,7 @@ public class CassandraConfig {
     return Response.status(500).build();
   }
 
-  @GET
+  @POST
   @Path("/is_replace_token")
   public Response isReplaceToken() {
     try {
@@ -86,7 +87,7 @@ public class CassandraConfig {
   }
 
 
-  @GET
+  @POST
   @Path("/get_replaced_ip")
   public Response getReplacedIp() {
     try {

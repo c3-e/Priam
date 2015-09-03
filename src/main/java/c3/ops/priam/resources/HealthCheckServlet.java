@@ -25,9 +25,12 @@ import c3.ops.priam.backup.SnapshotBackup;
 import c3.ops.priam.identity.IPriamInstanceFactory;
 import c3.ops.priam.utils.CassandraTuner;
 import c3.ops.priam.utils.ITokenManager;
+import c3.ops.priam.utils.SystemUtils;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.name.Named;
+import org.codehaus.jettison.json.JSONArray;
+import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +40,9 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.io.File;
+import java.io.IOException;
+import java.util.concurrent.ExecutionException;
 
 @Path("/v1/health")
 @Produces(MediaType.APPLICATION_JSON)
@@ -86,5 +92,23 @@ public class HealthCheckServlet {
     object.put("Backup", new Integer(backupTCount));
     object.put("Status", snapshotBackup.state().toString());
     return Response.ok(object.toString(), MediaType.APPLICATION_JSON).build();
+  }
+
+  @POST
+  @Path("disk_report")
+  public Response diskSpaceReport() throws JSONException {
+    File cass = new File(config.getDataFileLocation());
+
+    JSONObject drObj = new JSONObject();
+    drObj.put("totalSpace", cass.getTotalSpace());
+    drObj.put("freeSpace", cass.getFreeSpace());
+
+    return Response.ok(drObj, MediaType.APPLICATION_JSON).build();
+  }
+
+  @POST
+  @Path("java_version")
+  public Response javaVersion() throws JSONException {
+    return Response.ok(new JSONObject().put("version",System.getProperty("java.version")), MediaType.APPLICATION_JSON).build();
   }
 }

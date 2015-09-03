@@ -19,6 +19,7 @@ import c3.ops.priam.ICassandraProcess;
 import c3.ops.priam.IConfiguration;
 import c3.ops.priam.utils.JMXConnectionException;
 import c3.ops.priam.utils.JMXNodeTool;
+import c3.ops.priam.utils.SystemUtils;
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import org.apache.cassandra.concurrent.JMXEnabledThreadPoolExecutorMBean;
@@ -96,21 +97,21 @@ public class CassandraAdmin {
     return rootObj;
   }
 
-  @GET
+  @POST
   @Path("/start")
   public Response cassStart() throws IOException, InterruptedException, JSONException {
     cassProcess.start(true);
     return Response.ok(REST_SUCCESS, MediaType.APPLICATION_JSON).build();
   }
 
-  @GET
+  @POST
   @Path("/stop")
   public Response cassStop() throws IOException, InterruptedException, JSONException {
     cassProcess.stop();
     return Response.ok(REST_SUCCESS, MediaType.APPLICATION_JSON).build();
   }
 
-  @GET
+  @POST
   @Path("/refresh")
   public Response cassRefresh(@QueryParam(REST_HEADER_KEYSPACES) String keyspaces) throws IOException, ExecutionException, InterruptedException, JSONException {
     logger.debug("node tool refresh is being called");
@@ -128,7 +129,7 @@ public class CassandraAdmin {
     return Response.ok(REST_SUCCESS, MediaType.APPLICATION_JSON).build();
   }
 
-  @GET
+  @POST
   @Path("/info")
   public Response cassInfo() throws IOException, InterruptedException, JSONException {
     JMXNodeTool nodetool = null;
@@ -142,7 +143,7 @@ public class CassandraAdmin {
     return Response.ok(nodetool.info(), MediaType.APPLICATION_JSON).build();
   }
 
-  @GET
+  @POST
   @Path("/ring/{id}")
   public Response cassRing(@PathParam("id") String keyspace) throws IOException, InterruptedException, JSONException {
     JMXNodeTool nodetool = null;
@@ -156,7 +157,7 @@ public class CassandraAdmin {
     return Response.ok(nodetool.ring(keyspace), MediaType.APPLICATION_JSON).build();
   }
 
-  @GET
+  @POST
   @Path("/flush")
   public Response cassFlush() throws IOException, InterruptedException, ExecutionException {
     JMXNodeTool nodetool = null;
@@ -171,7 +172,7 @@ public class CassandraAdmin {
     return Response.ok().build();
   }
 
-  @GET
+  @POST
   @Path("/compact")
   public Response cassCompact() throws IOException, ExecutionException, InterruptedException {
     JMXNodeTool nodetool = null;
@@ -186,7 +187,7 @@ public class CassandraAdmin {
     return Response.ok().build();
   }
 
-  @GET
+  @POST
   @Path("/cleanup")
   public Response cassCleanup() throws IOException, ExecutionException, InterruptedException {
     JMXNodeTool nodetool = null;
@@ -201,7 +202,7 @@ public class CassandraAdmin {
     return Response.ok().build();
   }
 
-  @GET
+  @POST
   @Path("/repair")
   public Response cassRepair(@QueryParam("sequential") boolean isSequential, @QueryParam("localDC") boolean localDCOnly, @DefaultValue("false") @QueryParam("primaryRange") boolean primaryRange) throws IOException, ExecutionException, InterruptedException {
     JMXNodeTool nodetool = null;
@@ -216,7 +217,7 @@ public class CassandraAdmin {
     return Response.ok(REST_SUCCESS, MediaType.APPLICATION_JSON).build();
   }
 
-  @GET
+  @POST
   @Path("/version")
   public Response version() throws IOException, ExecutionException, InterruptedException {
     JMXNodeTool nodetool = null;
@@ -229,7 +230,7 @@ public class CassandraAdmin {
     return Response.ok(new JSONArray().put(nodetool.getReleaseVersion()), MediaType.APPLICATION_JSON).build();
   }
 
-  @GET
+  @POST
   @Path("/tpstats")
   public Response tpstats() throws IOException, ExecutionException, InterruptedException, JSONException {
     JMXNodeTool nodetool = null;
@@ -266,7 +267,7 @@ public class CassandraAdmin {
     return Response.ok(rootObj, MediaType.APPLICATION_JSON).build();
   }
 
-  @GET
+  @POST
   @Path("/compactionstats")
   public Response compactionStats() throws IOException, ExecutionException, InterruptedException, JSONException {
     JMXNodeTool nodetool = null;
@@ -296,7 +297,7 @@ public class CassandraAdmin {
     return Response.ok(rootObj, MediaType.APPLICATION_JSON).build();
   }
 
-  @GET
+  @POST
   @Path("/disablegossip")
   public Response disablegossip() throws IOException, ExecutionException, InterruptedException {
     JMXNodeTool nodetool = null;
@@ -310,7 +311,7 @@ public class CassandraAdmin {
     return Response.ok(REST_SUCCESS, MediaType.APPLICATION_JSON).build();
   }
 
-  @GET
+  @POST
   @Path("/enablegossip")
   public Response enablegossip() throws IOException, ExecutionException, InterruptedException {
     JMXNodeTool nodetool = null;
@@ -324,7 +325,7 @@ public class CassandraAdmin {
     return Response.ok(REST_SUCCESS, MediaType.APPLICATION_JSON).build();
   }
 
-  @GET
+  @POST
   @Path("/disablethrift")
   public Response disablethrift() throws IOException, ExecutionException, InterruptedException {
     JMXNodeTool nodetool = null;
@@ -338,7 +339,7 @@ public class CassandraAdmin {
     return Response.ok(REST_SUCCESS, MediaType.APPLICATION_JSON).build();
   }
 
-  @GET
+  @POST
   @Path("/enablethrift")
   public Response enablethrift() throws IOException, ExecutionException, InterruptedException {
     JMXNodeTool nodetool = null;
@@ -352,7 +353,7 @@ public class CassandraAdmin {
     return Response.ok(REST_SUCCESS, MediaType.APPLICATION_JSON).build();
   }
 
-  @GET
+  @POST
   @Path("/statusthrift")
   public Response statusthrift() throws IOException, ExecutionException, InterruptedException, JSONException {
     JMXNodeTool nodetool = null;
@@ -365,7 +366,7 @@ public class CassandraAdmin {
     return Response.ok(new JSONObject().put("status", (nodetool.isThriftServerRunning() ? "running" : "not running")), MediaType.APPLICATION_JSON).build();
   }
 
-  @GET
+  @POST
   @Path("/gossipinfo")
   public Response gossipinfo() throws IOException, ExecutionException, InterruptedException, JSONException {
     JMXNodeTool nodetool = null;
@@ -379,14 +380,14 @@ public class CassandraAdmin {
     return Response.ok(rootObj, MediaType.APPLICATION_JSON).build();
   }
 
-  @GET
+  @POST
   @Path("/netstats")
   public Response netstats(@QueryParam("host") String hostname) throws IOException, ExecutionException, InterruptedException, JSONException {
     //throw new ExecutionException("Unsupported yet");
     return Response.ok(REST_FAIL, MediaType.APPLICATION_JSON).build();
   }
 
-  @GET
+  @POST
   @Path("/move")
   public Response moveToken(@QueryParam(REST_HEADER_TOKEN) String newToken) throws IOException, ExecutionException, InterruptedException, ConfigurationException {
     JMXNodeTool nodetool = null;
@@ -400,7 +401,7 @@ public class CassandraAdmin {
     return Response.ok(REST_SUCCESS, MediaType.APPLICATION_JSON).build();
   }
 
-  @GET
+  @POST
   @Path("/scrub")
   public Response scrub(@QueryParam(REST_HEADER_KEYSPACES) String keyspaces, @QueryParam(REST_HEADER_CFS) String cfnames) throws IOException, ExecutionException, InterruptedException,
       ConfigurationException {
@@ -408,7 +409,7 @@ public class CassandraAdmin {
     return Response.ok(REST_FAIL, MediaType.APPLICATION_JSON).build();
   }
 
-  @GET
+  @POST
   @Path("/cfhistograms")
   public Response cfhistograms(@QueryParam(REST_HEADER_KEYSPACES) String keyspace, @QueryParam(REST_HEADER_CFS) String cfname) throws IOException, ExecutionException, InterruptedException,
       JSONException {
@@ -457,7 +458,7 @@ public class CassandraAdmin {
     return Response.ok(rootObj, MediaType.APPLICATION_JSON).build();
   }
 
-  @GET
+  @POST
   @Path("/drain")
   public Response cassDrain() throws IOException, ExecutionException, InterruptedException {
     JMXNodeTool nodetool = null;
@@ -471,5 +472,4 @@ public class CassandraAdmin {
     nodetool.drain();
     return Response.ok(REST_SUCCESS, MediaType.APPLICATION_JSON).build();
   }
-
 }
