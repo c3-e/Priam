@@ -1,25 +1,10 @@
-/**
- * Copyright 2013 Netflix, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package c3.ops.priam.resources;
+
 
 import c3.ops.priam.ICassandraProcess;
 import c3.ops.priam.IConfiguration;
 import c3.ops.priam.utils.JMXConnectionException;
 import c3.ops.priam.utils.JMXNodeTool;
-import c3.ops.priam.utils.SystemUtils;
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import org.apache.cassandra.concurrent.JMXEnabledThreadPoolExecutorMBean;
@@ -27,7 +12,7 @@ import org.apache.cassandra.db.ColumnFamilyStoreMBean;
 import org.apache.cassandra.db.compaction.CompactionManagerMBean;
 import org.apache.cassandra.exceptions.ConfigurationException;
 import org.apache.cassandra.utils.EstimatedHistogram;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang.StringUtils;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
@@ -55,46 +40,14 @@ public class CassandraAdmin {
   private static final String REST_HEADER_CFS = "cfnames";
   private static final String REST_HEADER_TOKEN = "token";
   private static final String REST_SUCCESS = "[\"ok\"]";
-  private static final String REST_FAIL = "[\"fail\"]";
   private static final Logger logger = LoggerFactory.getLogger(CassandraAdmin.class);
-  private final ICassandraProcess cassProcess;
   private IConfiguration config;
+  private final ICassandraProcess cassProcess;
 
   @Inject
   public CassandraAdmin(IConfiguration config, ICassandraProcess cassProcess) {
     this.config = config;
     this.cassProcess = cassProcess;
-  }
-
-  // helper method for parsing, to be tested easily
-  protected static JSONObject parseGossipInfo(String gossipinfo) throws JSONException {
-    String[] ginfo = gossipinfo.split("\n");
-    JSONObject rootObj = new JSONObject();
-    JSONObject obj = new JSONObject();
-    String key = "";
-    for (String line : ginfo) {
-      if (line.matches("^.*/.*$")) {
-        String[] data = line.split("/");
-        if (StringUtils.isNotBlank(key)) {
-          rootObj.put(key, obj);
-          obj = new JSONObject();
-        }
-        key = data[1];
-      } else if (line.matches("^  .*:.*$")) {
-        String[] kv = line.split(":");
-        kv[0] = kv[0].trim();
-        if (kv[0].equals("STATUS")) {
-          obj.put(kv[0], kv[1]);
-          String[] vv = kv[1].split(",");
-          obj.put("Token", vv[1]);
-        } else {
-          obj.put(kv[0], kv[1]);
-        }
-      }
-    }
-    if (StringUtils.isNotBlank(key))
-      rootObj.put(key, obj);
-    return rootObj;
   }
 
   @POST
@@ -122,6 +75,7 @@ public class CassandraAdmin {
     try {
       nodetool = JMXNodeTool.instance(config);
     } catch (JMXConnectionException e) {
+      logger.error("Exception in fetching c* jmx tool .  Msgl: " + e.getLocalizedMessage(), e);
       return Response.status(503).entity("JMXConnectionException")
           .build();
     }
@@ -136,6 +90,7 @@ public class CassandraAdmin {
     try {
       nodetool = JMXNodeTool.instance(config);
     } catch (JMXConnectionException e) {
+      logger.error("Exception in fetching c* jmx tool .  Msgl: " + e.getLocalizedMessage(), e);
       return Response.status(503).entity("JMXConnectionException")
           .build();
     }
@@ -150,6 +105,7 @@ public class CassandraAdmin {
     try {
       nodetool = JMXNodeTool.instance(config);
     } catch (JMXConnectionException e) {
+      logger.error("Exception in fetching c* jmx tool .  Msgl: " + e.getLocalizedMessage(), e);
       return Response.status(503).entity("JMXConnectionException")
           .build();
     }
@@ -164,6 +120,7 @@ public class CassandraAdmin {
     try {
       nodetool = JMXNodeTool.instance(config);
     } catch (JMXConnectionException e) {
+      logger.error("Exception in fetching c* jmx tool .  Msgl: " + e.getLocalizedMessage(), e);
       return Response.status(503).entity("JMXConnectionException")
           .build();
     }
@@ -179,6 +136,7 @@ public class CassandraAdmin {
     try {
       nodetool = JMXNodeTool.instance(config);
     } catch (JMXConnectionException e) {
+      logger.error("Exception in fetching c* jmx tool .  Msgl: " + e.getLocalizedMessage(), e);
       return Response.status(503).entity("JMXConnectionException")
           .build();
     }
@@ -194,6 +152,7 @@ public class CassandraAdmin {
     try {
       nodetool = JMXNodeTool.instance(config);
     } catch (JMXConnectionException e) {
+      logger.error("Exception in fetching c* jmx tool .  Msgl: " + e.getLocalizedMessage(), e);
       return Response.status(503).entity("JMXConnectionException")
           .build();
     }
@@ -209,6 +168,7 @@ public class CassandraAdmin {
     try {
       nodetool = JMXNodeTool.instance(config);
     } catch (JMXConnectionException e) {
+      logger.error("Exception in fetching c* jmx tool .  Msgl: " + e.getLocalizedMessage(), e);
       return Response.status(503).entity("JMXConnectionException")
           .build();
     }
@@ -224,6 +184,7 @@ public class CassandraAdmin {
     try {
       nodetool = JMXNodeTool.instance(config);
     } catch (JMXConnectionException e) {
+      logger.error("Exception in fetching c* jmx tool .  Msgl: " + e.getLocalizedMessage(), e);
       return Response.status(503).entity("JMXConnectionException")
           .build();
     }
@@ -237,6 +198,7 @@ public class CassandraAdmin {
     try {
       nodetool = JMXNodeTool.instance(config);
     } catch (JMXConnectionException e) {
+      logger.error("Exception in fetching c* jmx tool .  Msgl: " + e.getLocalizedMessage(), e);
       return Response.status(503).entity("JMXConnectionException")
           .build();
     }
@@ -274,6 +236,7 @@ public class CassandraAdmin {
     try {
       nodetool = JMXNodeTool.instance(config);
     } catch (JMXConnectionException e) {
+      logger.error("Exception in fetching c* jmx tool .  Msgl: " + e.getLocalizedMessage(), e);
       return Response.status(503).entity("JMXConnectionException")
           .build();
     }
@@ -304,6 +267,7 @@ public class CassandraAdmin {
     try {
       nodetool = JMXNodeTool.instance(config);
     } catch (JMXConnectionException e) {
+      logger.error("Exception in fetching c* jmx tool .  Msgl: " + e.getLocalizedMessage(), e);
       return Response.status(503).entity("JMXConnectionException")
           .build();
     }
@@ -318,6 +282,7 @@ public class CassandraAdmin {
     try {
       nodetool = JMXNodeTool.instance(config);
     } catch (JMXConnectionException e) {
+      logger.error("Exception in fetching c* jmx tool .  Msgl: " + e.getLocalizedMessage(), e);
       return Response.status(503).entity("JMXConnectionException")
           .build();
     }
@@ -332,6 +297,7 @@ public class CassandraAdmin {
     try {
       nodetool = JMXNodeTool.instance(config);
     } catch (JMXConnectionException e) {
+      logger.error("Exception in fetching c* jmx tool .  Msgl: " + e.getLocalizedMessage(), e);
       return Response.status(503).entity("JMXConnectionException")
           .build();
     }
@@ -346,6 +312,7 @@ public class CassandraAdmin {
     try {
       nodetool = JMXNodeTool.instance(config);
     } catch (JMXConnectionException e) {
+      logger.error("Exception in fetching c* jmx tool .  Msgl: " + e.getLocalizedMessage(), e);
       return Response.status(503).entity("JMXConnectionException")
           .build();
     }
@@ -360,6 +327,7 @@ public class CassandraAdmin {
     try {
       nodetool = JMXNodeTool.instance(config);
     } catch (JMXConnectionException e) {
+      logger.error("Exception in fetching c* jmx tool .  Msgl: " + e.getLocalizedMessage(), e);
       return Response.status(503).entity("JMXConnectionException")
           .build();
     }
@@ -373,6 +341,7 @@ public class CassandraAdmin {
     try {
       nodetool = JMXNodeTool.instance(config);
     } catch (JMXConnectionException e) {
+      logger.error("Exception in fetching c* jmx tool .  Msgl: " + e.getLocalizedMessage(), e);
       return Response.status(503).entity("JMXConnectionException")
           .build();
     }
@@ -380,11 +349,137 @@ public class CassandraAdmin {
     return Response.ok(rootObj, MediaType.APPLICATION_JSON).build();
   }
 
+
+  // helper method for parsing, to be tested easily
+  protected static JSONObject parseGossipInfo(String gossipinfo) throws JSONException {
+    String[] ginfo = gossipinfo.split("\n");
+    JSONObject rootObj = new JSONObject();
+    JSONObject obj = new JSONObject();
+    String key = "";
+    for (String line : ginfo) {
+      if (line.matches("^.*/.*$")) {
+        String[] data = line.split("/");
+        if (StringUtils.isNotBlank(key)) {
+          rootObj.put(key, obj);
+          obj = new JSONObject();
+        }
+        key = data[1];
+      } else if (line.matches("^  .*:.*$")) {
+        String[] kv = line.split(":");
+        kv[0] = kv[0].trim();
+        if (kv[0].equals("STATUS")) {
+          obj.put(kv[0], kv[1]);
+          String[] vv = kv[1].split(",");
+          obj.put("Token", vv[1]);
+        } else {
+          obj.put(kv[0], kv[1]);
+        }
+      }
+    }
+    if (StringUtils.isNotBlank(key))
+      rootObj.put(key, obj);
+    return rootObj;
+  }
+
   @POST
   @Path("/netstats")
   public Response netstats(@QueryParam("host") String hostname) throws IOException, ExecutionException, InterruptedException, JSONException {
-    //throw new ExecutionException("Unsupported yet");
-    return Response.ok(REST_FAIL, MediaType.APPLICATION_JSON).build();
+    throw new UnsupportedOperationException("Unsupported...waiting for Jason to resolve compile error.");
+      /*
+        JMXNodeTool nodetool = null;
+		try {
+			nodetool = JMXNodeTool.instance(config);
+		} catch (JMXConnectionException e) {
+			logger.error("Exception in fetching c* jmx tool .  Msgl: " + e.getLocalizedMessage(), e);
+			return Response.status(503).entity("JMXConnectionException")
+					.build();
+		}
+        JSONObject rootObj = new JSONObject();
+        rootObj.put("mode", nodetool.getOperationMode());
+        final InetAddress addr = (hostname == null) ? null : InetAddress.getByName(hostname);
+        Set<InetAddress> hosts = addr == null ? nodetool.getStreamDestinations() : new HashSet<InetAddress>()
+        {
+            {
+                add(addr);
+            }
+        };
+        if (hosts.size() == 0)
+            rootObj.put("sending", "Not sending any streams.");
+        JSONObject hostSendStats = new JSONObject();
+        for (InetAddress host : hosts)
+        {
+            try
+            {
+                List<String> files = nodetool.getFilesDestinedFor(host);
+                if (files.size() > 0)
+                {
+                    JSONArray fObj = new JSONArray();
+                    for (String file : files)
+                        fObj.put(file);
+                    hostSendStats.put(host.getHostAddress(), fObj);
+                }
+            }
+            catch (IOException ex)
+            {
+                hostSendStats.put(host.getHostAddress(), "Error retrieving file data");
+            }
+        }
+        rootObj.put("hosts sending", hostSendStats);
+        hosts = addr == null ? nodetool.getStreamSources() : new HashSet<InetAddress>()
+        {
+            {
+                add(addr);
+            }
+        };
+        if (hosts.size() == 0)
+            rootObj.put("receiving", "Not receiving any streams.");
+        JSONObject hostRecvStats = new JSONObject();
+        for (InetAddress host : hosts)
+        {
+            try
+            {
+                List<String> files = nodetool.getIncomingFiles(host);
+                if (files.size() > 0)
+                {
+                    JSONArray fObj = new JSONArray();
+                    for (String file : files)
+                        fObj.put(file);
+                    hostRecvStats.put(host.getHostAddress(), fObj);
+                }
+            }
+            catch (IOException ex)
+            {
+                hostRecvStats.put(host.getHostAddress(), "Error retrieving file data");
+            }
+        }
+        rootObj.put("hosts receiving", hostRecvStats);
+        MessagingServiceMBean ms = nodetool.msProxy;
+        int pending;
+        long completed;
+        pending = 0;
+        for (int n : ms.getCommandPendingTasks().values())
+            pending += n;
+        completed = 0;
+        for (long n : ms.getCommandCompletedTasks().values())
+            completed += n;
+        JSONObject cObj = new JSONObject();
+        cObj.put("active", "n/a");
+        cObj.put("pending", pending);
+        cObj.put("completed", completed);
+        rootObj.put("commands", cObj);
+        pending = 0;
+        for (int n : ms.getResponsePendingTasks().values())
+            pending += n;
+        completed = 0;
+        for (long n : ms.getResponseCompletedTasks().values())
+            completed += n;
+        JSONObject rObj = new JSONObject();
+        rObj.put("active", "n/a");
+        rObj.put("pending", pending);
+        rObj.put("completed", completed);
+        rootObj.put("responses", rObj);
+        return Response.ok(rootObj, MediaType.APPLICATION_JSON).build();
+        */
   }
 
   @POST
@@ -394,6 +489,7 @@ public class CassandraAdmin {
     try {
       nodetool = JMXNodeTool.instance(config);
     } catch (JMXConnectionException e) {
+      logger.error("Exception in fetching c* jmx tool .  Msgl: " + e.getLocalizedMessage(), e);
       return Response.status(503).entity("JMXConnectionException")
           .build();
     }
@@ -403,10 +499,27 @@ public class CassandraAdmin {
 
   @POST
   @Path("/scrub")
-  public Response scrub(@QueryParam(REST_HEADER_KEYSPACES) String keyspaces, @QueryParam(REST_HEADER_CFS) String cfnames) throws IOException, ExecutionException, InterruptedException,
+  public Response scrub(@QueryParam("disableSnapshot") boolean disableSnapshot, @QueryParam("skipCorrupted") boolean skipCorrupted, @QueryParam(REST_HEADER_KEYSPACES) String keyspaces, @QueryParam(REST_HEADER_CFS) String cfnames) throws IOException, ExecutionException, InterruptedException,
       ConfigurationException {
 
-    return Response.ok(REST_FAIL, MediaType.APPLICATION_JSON).build();
+
+    JMXNodeTool nodetool = null;
+    try {
+      nodetool = JMXNodeTool.instance(config);
+    } catch (JMXConnectionException e) {
+      logger.error("Exception in fetching c* jmx tool .  Msgl: " + e.getLocalizedMessage(), e);
+      return Response.status(503).entity("JMXConnectionException")
+          .build();
+    }
+    String[] cfs = null;
+    if (StringUtils.isNotBlank(cfnames))
+      cfs = cfnames.split(",");
+    if (cfs == null)
+      nodetool.scrub(disableSnapshot, skipCorrupted, keyspaces);
+    else
+      nodetool.scrub(disableSnapshot, skipCorrupted, keyspaces, cfs);
+    return Response.ok(REST_SUCCESS, MediaType.APPLICATION_JSON).build();
+
   }
 
   @POST
@@ -417,6 +530,7 @@ public class CassandraAdmin {
     try {
       nodetool = JMXNodeTool.instance(config);
     } catch (JMXConnectionException e) {
+      logger.error("Exception in fetching c* jmx tool .  Msgl: " + e.getLocalizedMessage(), e);
       return Response.status(503).entity("JMXConnectionException")
           .build();
     }
@@ -465,6 +579,7 @@ public class CassandraAdmin {
     try {
       nodetool = JMXNodeTool.instance(config);
     } catch (JMXConnectionException e) {
+      logger.error("Exception in fetching c* jmx tool .  Msgl: " + e.getLocalizedMessage(), e);
       return Response.status(503).entity("JMXConnectionException")
           .build();
     }
@@ -472,4 +587,5 @@ public class CassandraAdmin {
     nodetool.drain();
     return Response.ok(REST_SUCCESS, MediaType.APPLICATION_JSON).build();
   }
+
 }
