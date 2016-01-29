@@ -30,7 +30,8 @@ case "$1" in
 
 
         su $OPSAGENT_OWNR -c "kill `cat $pid_file`"
-        for t in `seq 40`; do $0 status > /dev/null 2>&1 && sleep 0.5 || break; done
+        su $OPSAGENT_OWNR -c "kill -9 `ps -ef | grep opsagent |grep -v grep | awk '{print $2}'`"
+        #for t in `seq 40`; do $0 status > /dev/null 2>&1 && sleep 0.5 || break; done
         #for t in `seq 40`; do netstat -tnlp | grep "0.0.0.0:8080" > /dev/null 2>&1 && sleep 0.1 || break; done
         sleep 5
         echo "OK"
@@ -40,7 +41,8 @@ case "$1" in
         $0 start
         ;;
     status)
-        status -p $pid_file opsagent
+        PIDS=$(ps -ef | grep ops | grep -v grep | awk '{print $2}')
+        ps -p $PIDS
         exit $?
         ;;
     *)

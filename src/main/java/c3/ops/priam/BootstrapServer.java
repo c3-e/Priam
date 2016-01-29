@@ -14,6 +14,7 @@ public class BootstrapServer {
       String webDir = BootstrapServer.class.getProtectionDomain().getCodeSource().getLocation().toExternalForm();
       WebAppContext webAppContext = new WebAppContext(webDir, "/");
       webAppContext.setDescriptor(webAppContext + "/WEB-INF/web.xml");
+      webAppContext.setAttribute("javax.servlet.context.tempdir", "/tmp/opsagent");
       server.setHandler(webAppContext);
       server.start();
       server.join();
