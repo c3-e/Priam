@@ -20,6 +20,8 @@ OPSAGENT_PROG=/opt/opsagent/bin/opsagent
 case "$1" in
     start)
         # Ops agent startup
+        touch $pid_file
+        chown -R $OPSAGENT_OWNR.$OPSAGENT_OWNR $pid_file
         echo -n "Starting Ops agent: "
         su $OPSAGENT_OWNR -c "$OPSAGENT_PROG -p $pid_file" > $log_file 2>&1
         echo "OK"
@@ -27,10 +29,8 @@ case "$1" in
     stop)
         # Ops agent shutdown
         echo -n "Shutdown Ops agent: "
-
-
         su $OPSAGENT_OWNR -c "kill `cat $pid_file`"
-        su $OPSAGENT_OWNR -c "kill -9 `ps -ef | grep opsagent |grep -v grep | awk '{print $2}'`"
+        #su $OPSAGENT_OWNR -c "kill -9 `ps -ef | grep opsagent |grep -v grep | awk '{print $2}'`"
         #for t in `seq 40`; do $0 status > /dev/null 2>&1 && sleep 0.5 || break; done
         #for t in `seq 40`; do netstat -tnlp | grep "0.0.0.0:8080" > /dev/null 2>&1 && sleep 0.1 || break; done
         sleep 5
@@ -41,7 +41,7 @@ case "$1" in
         $0 start
         ;;
     status)
-        PIDS=$(ps -ef | grep ops | grep -v grep | awk '{print $2}')
+        PIDS=$(ps -ef | grep opsagent | grep -v grep | awk '{print $2}')
         ps -p $PIDS
         exit $?
         ;;
