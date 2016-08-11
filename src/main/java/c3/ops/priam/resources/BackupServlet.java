@@ -95,21 +95,21 @@ public class BackupServlet {
     this.cassProcess = cassProcess;
   }
 
-  @POST
+  @GET
   @Path("/do_snapshot")
   public Response backup() throws Exception {
     snapshotBackup.execute();
     return Response.ok(REST_SUCCESS, MediaType.APPLICATION_JSON).build();
   }
 
-  @POST
+  @GET
   @Path("/incremental_backup")
   public Response backupIncrementals() throws Exception {
     scheduler.addTask("IncrementalBackup", IncrementalBackup.class, IncrementalBackup.getTimer());
     return Response.ok(REST_SUCCESS, MediaType.APPLICATION_JSON).build();
   }
 
-  @POST
+  @GET
   @Path("/restore")
   public Response restore(@QueryParam(REST_HEADER_RANGE) String daterange, @QueryParam(REST_HEADER_REGION) String region, @QueryParam(REST_HEADER_TOKEN) String token,
                           @QueryParam(REST_KEYSPACES) String keyspaces, @QueryParam(REST_RESTORE_PREFIX) String restorePrefix) throws Exception {
@@ -145,7 +145,7 @@ public class BackupServlet {
   }
 
 
-  @POST
+  @GET
   @Path("/list")
   public Response list(@QueryParam(REST_HEADER_RANGE) String daterange, @QueryParam(REST_HEADER_FILTER) @DefaultValue("") String filter) throws Exception {
     Date startTime;

@@ -159,10 +159,12 @@ public class PriamConfiguration implements IConfiguration {
   private static String US_WEST_2_REGION = "us-west-2";
   private static String EU_WEST_1_REGION = "eu-west-1";
   private static String SA_EAST_1_REGION = "sa-east-1";
-  private static String Ring_Name = System.getenv("Ring_Name");
-  private static String REGION = System.getenv("EC2_REGION");
+
   private final String PUBLIC_HOSTNAME;
   private final String PUBLIC_IP;
+
+   private static String Ring_Name = System.getenv("Ring_Name");
+   private static String REGION = System.getenv("EC2_REGION");
   private final String RAC = SystemUtils.getDataFromUrl("http://169.254.169.254/latest/meta-data/placement/availability-zone");
   private final String LOCAL_HOSTNAME = SystemUtils.getDataFromUrl("http://169.254.169.254/latest/meta-data/local-hostname").trim();
 
@@ -170,13 +172,13 @@ public class PriamConfiguration implements IConfiguration {
   private final String INSTANCE_ID = SystemUtils.getDataFromUrl("http://169.254.169.254/latest/meta-data/instance-id").trim();
   private final String INSTANCE_TYPE = SystemUtils.getDataFromUrl("http://169.254.169.254/latest/meta-data/instance-type").trim();
 
-//  private static String REGION = "us-east-1";
-//	private static String Ring_Name = "dev-c3";
+//  private static String REGION = "us-west-2";
+//	private static String Ring_Name = "prod-bge";
 //  private final String INSTANCE_TYPE = "i2.2xlarge";
-//  private final String INSTANCE_ID = "i-b2137a99";
-//  private final String LOCAL_IP = "10.0.11.100";
-//  private final String LOCAL_HOSTNAME = "dev-c3-cass-10.c3-vpc.internal";
-//  private final String RAC = "us-east-1a";
+//  private final String INSTANCE_ID = "i-c51e7b6a";
+//  private final String LOCAL_IP = "10.3.21.177";
+//  private final String LOCAL_HOSTNAME = "sbox-bge-cass-001.sbox-01-usw2.internal";
+//  private final String RAC = "us-west-2a";
 
   // Defaults
   private final String DEFAULT_CLUSTER_NAME = "cass_cluster";

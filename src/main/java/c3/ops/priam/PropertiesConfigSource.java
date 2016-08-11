@@ -8,7 +8,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.util.Map;
 import java.util.Properties;
@@ -51,17 +53,15 @@ public class PropertiesConfigSource extends AbstractConfigSource {
   public void intialize(final String ringName, final String region) {
     super.intialize(ringName, region);
     Properties properties = new Properties();
-    URL url = PropertiesConfigSource.class.getClassLoader().getResource(priamFile);
-    if (url != null) {
+    //URL url = PropertiesConfigSource.class.getClassLoader().getResource(priamFile);
+
       try {
-        properties.load(url.openStream());
+         InputStream input = new FileInputStream(this.priamFile);
+        properties.load(input);
         clone(properties);
       } catch (IOException e) {
         logger.info("No Opsagent.properties. Ignore!");
       }
-    } else {
-      logger.info("No Opsagent.properties. Ignore!");
-    }
   }
 
   @Override
