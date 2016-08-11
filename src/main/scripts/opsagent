@@ -46,7 +46,7 @@ launch_service()
     props="$3"
     class="$4"
     opsagent_parms="-Dlogback.configurationFile=file:$OPSAGENT_CONF/log4j.properties"
-    opsagent_parms="$opsagent_parms -Dopsagent.opsagentProperties=file:$OPSAGENT_CONF/opsagent.properties"
+    opsagent_parms="$opsagent_parms -Dopsagent.opsagentProperties=$OPSAGENT_CONF/opsagent.properties"
     opsagent_parms="$opsagent_parms -Dopsagent.opsagentPORT=8080"
 
     if [ "x$pidpath" != "x" ]; then
