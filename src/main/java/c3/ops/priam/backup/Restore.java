@@ -118,7 +118,7 @@ public class Restore extends AbstractRestore {
       logger.error("Aborting Restore. Stop cassandra process before ", e);
     } else {
       // Cleanup local data
-//      SystemUtils.cleanupDir(config.getDataFileLocation(), config.getRestoreKeySpaces());
+      SystemUtils.cleanupDir(config.getDataFileLocation(), config.getRestoreKeySpaces());
 
       // Try and read the Meta file.
       List<AbstractBackupPath> metas = Lists.newArrayList();

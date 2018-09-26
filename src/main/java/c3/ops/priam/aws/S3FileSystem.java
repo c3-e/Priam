@@ -108,7 +108,9 @@ public class S3FileSystem implements IBackupFileSystem, S3FileSystemMBean {
             "us-west-1".equalsIgnoreCase(curRegion) ||
             "us-west-2".equalsIgnoreCase(curRegion) ||
             "eu-west-1".equalsIgnoreCase(curRegion) ||
-            "sa-east-1".equalsIgnoreCase(curRegion))
+            "sa-east-1".equalsIgnoreCase(curRegion) ||
+            "us-east-2".equalsIgnoreCase(curRegion) ||
+            "ap-southeast-2".equalsIgnoreCase(curRegion))
          return config.getS3EndPoint();
 
       throw new IllegalStateException("Unsupported region for this application: " + curRegion);
