@@ -1,22 +1,13 @@
-/**
- * Copyright 2013 Netflix, Inc.
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * http://www.apache.org/licenses/LICENSE-2.0
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package c3.ops.priam.defaultimpl;
 
 import c3.ops.priam.IConfigSource;
 import c3.ops.priam.IConfiguration;
 import c3.ops.priam.ICredential;
+import c3.ops.priam.identity.config.AwsVpcInstanceDataRetriever;
 import c3.ops.priam.utils.RetryableCallable;
 import c3.ops.priam.utils.SystemUtils;
+import c3.ops.priam.identity.config.InstanceDataRetriever;
+
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2Client;
 import com.amazonaws.services.ec2.model.*;
@@ -25,12 +16,14 @@ import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import org.apache.commons.lang3.StringUtils;
+import org.codehaus.jettison.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.FileInputStream;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -40,221 +33,48 @@ import java.util.regex.Pattern;
 public class PriamConfiguration implements IConfiguration {
 
    public static final String PRIAM_PRE = "priam";
+   private static final Logger logger = LoggerFactory.getLogger(PriamConfiguration.class);
 
-   private static final String CONFIG_CASS_HOME_DIR                 = PRIAM_PRE + ".cass.home";
-   private static final String CONFIG_CASS_START_SCRIPT             = PRIAM_PRE + ".cass.startscript";
-   private static final String CONFIG_CASS_STOP_SCRIPT              = PRIAM_PRE + ".cass.stopscript";
-   private static final String CONFIG_CLUSTER_NAME                  = PRIAM_PRE + ".clustername";
-   private static final String CONFIG_SEED_PROVIDER_NAME            = PRIAM_PRE + ".seed.provider";
-   private static final String CONFIG_LOAD_LOCAL_PROPERTIES         = PRIAM_PRE + ".localbootstrap.enable";
-   private static final String CONFIG_MAX_HEAP_SIZE                 = PRIAM_PRE + ".heap.size.";
-   private static final String CONFIG_DATA_LOCATION                 = PRIAM_PRE + ".data.location";
-   private static final String CONFIG_MR_ENABLE                     = PRIAM_PRE + ".multiregion.enable";
-   private static final String CONFIG_CL_LOCATION                   = PRIAM_PRE + ".commitlog.location";
-   private static final String CONFIG_JMX_LISTERN_PORT_NAME         = PRIAM_PRE + ".jmx.port";
-   private static final String CONFIG_AVAILABILITY_ZONES            = PRIAM_PRE + ".zones.available";
-   private static final String CONFIG_SAVE_CACHE_LOCATION           = PRIAM_PRE + ".cache.location";
-   private static final String CONFIG_NEW_MAX_HEAP_SIZE             = PRIAM_PRE + ".heap.newgen.size.";
-   private static final String CONFIG_DIRECT_MAX_HEAP_SIZE          = PRIAM_PRE + ".direct.memory.size.";
-   private static final String CONFIG_THRIFT_LISTEN_PORT_NAME       = PRIAM_PRE + ".thrift.port";
-   private static final String CONFIG_THRIFT_ENABLED                = PRIAM_PRE + ".thrift.enabled";
-   private static final String CONFIG_NATIVE_PROTOCOL_PORT          = PRIAM_PRE + ".nativeTransport.port";
-   private static final String CONFIG_NATIVE_PROTOCOL_ENABLED       = PRIAM_PRE + ".nativeTransport.enabled";
-   private static final String CONFIG_STORAGE_LISTERN_PORT_NAME     = PRIAM_PRE + ".storage.port";
-   private static final String CONFIG_SSL_STORAGE_LISTERN_PORT_NAME = PRIAM_PRE + ".ssl.storage.port";
-   private static final String CONFIG_CL_BK_LOCATION                = PRIAM_PRE + ".backup.commitlog.location";
-   private static final String CONFIG_THROTTLE_UPLOAD_PER_SECOND    = PRIAM_PRE + ".upload.throttle";
-   private static final String CONFIG_IN_MEMORY_COMPACTION_LIMIT    = PRIAM_PRE + ".memory.compaction.limit";
-   private static final String CONFIG_COMPACTION_THROUHPUT          = PRIAM_PRE + ".compaction.throughput";
-   private static final String CONFIG_MAX_HINT_WINDOW_IN_MS         = PRIAM_PRE + ".hint.window";
-   private static final String CONFIG_HINT_DELAY                    = PRIAM_PRE + ".hint.delay";
-   private static final String CONFIG_BOOTCLUSTER_NAME              = PRIAM_PRE + ".bootcluster";
-   private static final String CONFIG_ENDPOINT_SNITCH               = PRIAM_PRE + ".endpoint_snitch";
-   private static final String CONFIG_MEMTABLE_TOTAL_SPACE          = PRIAM_PRE + ".memtabletotalspace";
-   private static final String CONFIG_CASS_PROCESS_NAME             = PRIAM_PRE + ".cass.process";
-   private static final String CONFIG_VNODE_NUM_TOKENS              = PRIAM_PRE + ".vnodes.numTokens";
-   private static final String CONFIG_YAML_LOCATION                 = PRIAM_PRE + ".yamlLocation";
-   private static final String CONFIG_AUTHENTICATOR                 = PRIAM_PRE + ".authenticator";
-   private static final String CONFIG_AUTHORIZER                    = PRIAM_PRE + ".authorizer";
-   private static final String CONFIG_TARGET_KEYSPACE_NAME          = PRIAM_PRE + ".target.keyspace";
-   private static final String CONFIG_TARGET_COLUMN_FAMILY_NAME     = PRIAM_PRE + ".target.columnfamily";
-   private static final String CONFIG_CASS_MANUAL_START_ENABLE      = PRIAM_PRE + ".cass.manual.start.enable";
-   private static final String CONFIG_CASS_MANUAL_CONFIG_ENABLE     = PRIAM_PRE + ".cass.manual.config.enable";
-   private static final String CONFIG_CREATE_NEW_TOKEN_ENABLE       = PRIAM_PRE + ".create.new.token.enable";
+   private String NETWORK_VPC, INSTANCE_ID, RAC, INSTANCE_TYPE, LOCAL_IP, REGION, RING_NAME, C3_HOSTNAME;
 
-   // Backup and Restore
-   private static final String CONFIG_BACKUP_DEBUG              = PRIAM_PRE + ".backup.debug";
-   private static final String CONFIG_BACKUP_VALIDATE           = PRIAM_PRE + ".backup.validate";
-   private static final String CONFIG_BACKUP_THREADS            = PRIAM_PRE + ".backup.threads";
-   private static final String CONFIG_RESTORE_PREFIX            = PRIAM_PRE + ".restore.prefix";
-   private static final String CONFIG_INCR_BK_ENABLE            = PRIAM_PRE + ".backup.incremental.enable";
-   private static final String CONFIG_CL_BK_ENABLE              = PRIAM_PRE + ".backup.commitlog.enable";
-   private static final String CONFIG_AUTO_RESTORE_SNAPSHOTNAME = PRIAM_PRE + ".restore.snapshot";
-   private static final String CONFIG_BUCKET_NAME               = PRIAM_PRE + ".s3.bucket";
-   private static final String CONFIG_BACKUP_HOUR               = PRIAM_PRE + ".backup.hour";
-   private static final String CONFIG_S3_BASE_DIR               = PRIAM_PRE + ".s3.base_dir";
-   private static final String CONFIG_RESTORE_THREADS           = PRIAM_PRE + ".restore.threads";
-   private static final String CONFIG_RESTORE_CLOSEST_TOKEN     = PRIAM_PRE + ".restore.closesttoken";
-   private static final String CONFIG_RESTORE_KEYSPACES         = PRIAM_PRE + ".restore.keyspaces";
-   private static final String CONFIG_BACKUP_CHUNK_SIZE         = PRIAM_PRE + ".backup.chunksizemb";
-   private static final String CONFIG_BACKUP_RETENTION          = PRIAM_PRE + ".backup.retention";
-   private static final String CONFIG_BACKUP_RACS               = PRIAM_PRE + ".backup.racs";
-   private static final String CONFIG_MULTITHREADED_COMPACTION  = PRIAM_PRE + ".multithreaded.compaction";
-   private static final String CONFIG_STREAMING_THROUGHPUT_MB   = PRIAM_PRE + ".streaming.throughput.mb";
-   private static final String CONFIG_PARTITIONER               = PRIAM_PRE + ".partitioner";
-   private static final String CONFIG_KEYCACHE_SIZE             = PRIAM_PRE + ".keyCache.size";
-   private static final String CONFIG_KEYCACHE_COUNT            = PRIAM_PRE + ".keyCache.count";
-   private static final String CONFIG_ROWCACHE_SIZE             = PRIAM_PRE + ".rowCache.size";
-   private static final String CONFIG_ROWCACHE_COUNT            = PRIAM_PRE + ".rowCache.count";
-
-   private static final String CONFIG_MAX_HINT_THREADS      = PRIAM_PRE + ".hints.maxThreads";
-   private static final String CONFIG_HINTS_THROTTLE_KB     = PRIAM_PRE + ".hints.throttleKb";
-   private static final String CONFIG_INTERNODE_COMPRESSION = PRIAM_PRE + ".internodeCompression";
-
-   private static final String CONFIG_COMMITLOG_BKUP_ENABLED          = PRIAM_PRE + ".clbackup.enabled";
-   private static final String CONFIG_COMMITLOG_ARCHIVE_CMD           = PRIAM_PRE + ".clbackup.archiveCmd";
-   private static final String CONFIG_COMMITLOG_RESTORE_CMD           = PRIAM_PRE + ".clbackup.restoreCmd";
-   private static final String CONFIG_COMMITLOG_RESTORE_DIRS          = PRIAM_PRE + ".clbackup.restoreDirs";
-   private static final String CONFIG_COMMITLOG_RESTORE_POINT_IN_TIME = PRIAM_PRE + ".clbackup.restoreTime";
-   private static final String CONFIG_COMMITLOG_RESTORE_MAX           = PRIAM_PRE + ".clrestore.max";
-   private static final String CONFIG_CLIENT_SSL_ENABLED              = PRIAM_PRE + ".client.sslEnabled";
-   private static final String CONFIG_INTERNODE_ENCRYPTION            = PRIAM_PRE + ".internodeEncryption";
-   private static final String CONFIG_DSNITCH_ENABLED                 = PRIAM_PRE + ".dsnitchEnabled";
-
-   private static final String CONFIG_CONCURRENT_READS      = PRIAM_PRE + ".concurrentReads";
-   private static final String CONFIG_CONCURRENT_WRITES     = PRIAM_PRE + ".concurrentWrites";
-   private static final String CONFIG_CONCURRENT_COMPACTORS = PRIAM_PRE + ".concurrentCompactors";
-
-   private static final String CONFIG_RPC_SERVER_TYPE  = PRIAM_PRE + ".rpc.server.type";
-   private static final String CONFIG_INDEX_INTERVAL   = PRIAM_PRE + ".index.interval";
-   private static final String CONFIG_EXTRA_PARAMS     = PRIAM_PRE + ".extra.params";
-   private static final String CONFIG_AUTO_BOOTSTRAP   = PRIAM_PRE + ".auto.bootstrap";
-   private static final String CONFIG_DSE_CLUSTER_TYPE = PRIAM_PRE + ".dse.cluster.type";
-
-   private static final String CONFIG_US_EAST_1_S3_ENDPOINT  = PRIAM_PRE + ".useast1.s3url";
-   private static final String CONFIG_US_WEST_1_S3_ENDPOINT  = PRIAM_PRE + ".uswest1.s3url";
-   private static final String CONFIG_US_WEST_2_S3_ENDPOINT  = PRIAM_PRE + ".uswest2.s3url";
-   private static final String CONFIG_EU_WEST_1_S3_ENDPOINT  = PRIAM_PRE + ".euwest1.s3url";
-   private static final String CONFIG_US_EAST_2_S3_ENDPOINT  = PRIAM_PRE + ".useast2.s3url";
-   private static final String CONFIG_AP_SOUTHEAST_2_S3_ENDPOINT  = PRIAM_PRE + ".apsoutheast.s3url";
-   private static final String CONFIG_SA_EAST_1_S3_ENDPOINT  = PRIAM_PRE + ".saeast1.s3url";
-   // Amazon specific
-   private static final String CONFIG_Ring_Name              = PRIAM_PRE + ".az.ringname";
-   private static final String CONFIG_REGION_NAME            = PRIAM_PRE + ".az.region";
-   private static final String CONFIG_ACL_GROUP_NAME         = PRIAM_PRE + ".acl.groupname";
-   private static final String CONFIG_VPC_RING               = PRIAM_PRE + ".vpc";
-   public static final  String DEFAULT_AUTHENTICATOR         = "org.apache.cassandra.auth.AllowAllAuthenticator";
-   public static final  String DEFAULT_AUTHORIZER            = "org.apache.cassandra.auth.AllowAllAuthorizer";
-   private static final String DEFAULT_RPC_SERVER_TYPE       = "sync";
-   private static final int    DEFAULT_INDEX_INTERVAL        = 256;
-   //default S3 endpoints
-   private static final String DEFAULT_US_EAST_1_S3_ENDPOINT = "s3-external-1.amazonaws.com";
-   private static final String DEFAULT_US_WEST_1_S3_ENDPOINT = "s3-us-west-1.amazonaws.com";
-   private static final String DEFAULT_US_WEST_2_S3_ENDPOINT = "s3-us-west-2.amazonaws.com";
-   private static final String DEFAULT_EU_WEST_1_S3_ENDPOINT = "s3-eu-west-1.amazonaws.com";
-   private static final String DEFAULT_SA_EAST_1_S3_ENDPOINT = "s3-sa-east-1.amazonaws.com";
-   private static final String DEFAULT_AP_SOUTHEAST_2_S3_ENDPOINT = "s3-ap-southeast-2.amazonaws.com";
-   private static final String DEFAULT_US_EAST_2_S3_ENDPOINT = "s3-us-east-2.amazonaws.com";
-   private static final Logger logger                        = LoggerFactory.getLogger(PriamConfiguration.class);
-   private static       String US_EAST_1_REGION              = "us-east-1";
-   private static       String US_EAST_2_REGION              = "us-east-2";
-   private static       String US_WEST_1_REGION              = "us-west-1";
-   private static       String US_WEST_2_REGION              = "us-west-2";
-   private static       String EU_WEST_1_REGION              = "eu-west-1";
-   private static       String SA_EAST_1_REGION              = "sa-east-1";
-   private static       String AP_SOUTHEAST_2_REGION         = "ap-southeast-2";
-
-   private final String PUBLIC_HOSTNAME;
-   private final String PUBLIC_IP;
-
-   private static String Ring_Name      = System.getenv("Ring_Name");
-   private static String REGION         = System.getenv("EC2_REGION");
-   private final  String RAC            =
-         SystemUtils.getDataFromUrl("http://169.254.169.254/latest/meta-data/placement/availability-zone");
-   private final  String LOCAL_HOSTNAME =
-         SystemUtils.getDataFromUrl("http://169.254.169.254/latest/meta-data/local-hostname").trim();
-
-   private final String LOCAL_IP      =
-         SystemUtils.getDataFromUrl("http://169.254.169.254/latest/meta-data/local-ipv4").trim();
-   private final String INSTANCE_ID   =
-         SystemUtils.getDataFromUrl("http://169.254.169.254/latest/meta-data/instance-id").trim();
-   private final String INSTANCE_TYPE =
-         SystemUtils.getDataFromUrl("http://169.254.169.254/latest/meta-data/instance-type").trim();
-
-   //  private static String REGION = "us-west-2";
-   //	private static String Ring_Name = "prod-bge";
-   //  private final String INSTANCE_TYPE = "i2.2xlarge";
-   //  private final String INSTANCE_ID = "i-c51e7b6a";
-   //  private final String LOCAL_IP = "10.3.21.177";
-   //  private final String LOCAL_HOSTNAME = "sbox-bge-cass-001.sbox-01-usw2.internal";
-   //  private final String RAC = "us-west-2a";
-
-   // Defaults
-   private final String DEFAULT_CLUSTER_NAME          = "cass_cluster";
-   private final String DEFAULT_DATA_LOCATION         = "/var/lib/cassandra/data";
-   private final String DEFAULT_COMMIT_LOG_LOCATION   = "/var/lib/cassandra/commitlog";
-   private final String DEFAULT_CACHE_LOCATION        = "/var/lib/cassandra/saved_caches";
-   private final String DEFAULT_ENDPOINT_SNITCH       = "org.apache.cassandra.locator.Ec2Snitch";
-   private final String DEFAULT_SEED_PROVIDER         = "c3.ops.cassandra.cassandra.extensions.NFSeedProvider";
-   private final String DEFAULT_PARTITIONER           = "org.apache.cassandra.dht.RandomPartitioner";
-   // rpm based. Can be modified for tar based.
-   private final String DEFAULT_CASS_HOME_DIR         = "/etc/cassandra";
-   private final String DEFAULT_CASS_START_SCRIPT     = "/etc/init.d/cassandra start";
-   private final String DEFAULT_CASS_STOP_SCRIPT      = "/etc/init.d/cassandra stop";
-   private final String DEFAULT_BACKUP_LOCATION       = "backup";
-   private final String DEFAULT_BUCKET_NAME           = "cassandra-archive";
-   private final String DEFAULT_CASS_PROCESS_NAME     = "CassandraDaemon";
-   private final String DEFAULT_MAX_DIRECT_MEM        = "50G";
-   private final String DEFAULT_MAX_HEAP              = "8G";
-   private final String DEFAULT_MAX_NEWGEN_HEAP       = "2G";
-   private final int    DEFAULT_JMX_PORT              = 7199;
-   private final int    DEFAULT_THRIFT_PORT           = 9160;
-   private final int    DEFAULT_NATIVE_PROTOCOL_PORT  = 9042;
-   private final int    DEFAULT_STORAGE_PORT          = 7000;
-   private final int    DEFAULT_SSL_STORAGE_PORT      = 7001;
-   private final int    DEFAULT_BACKUP_HOUR           = 12;
-   private final int    DEFAULT_BACKUP_THREADS        = 2;
-   private final int    DEFAULT_RESTORE_THREADS       = 8;
-   private final int    DEFAULT_BACKUP_CHUNK_SIZE     = 10;
-   private final int    DEFAULT_BACKUP_RETENTION      = 5;
-   private final int    DEFAULT_VNODE_NUM_TOKENS      = 1;
-   private final int    DEFAULT_HINTS_MAX_THREADS     = 2; //default value from 1.2 yaml
-   private final int    DEFAULT_HINTS_THROTTLE_KB     = 1024; //default value from 1.2 yaml
-   private final String DEFAULT_INTERNODE_COMPRESSION = "all";  //default value from 1.2 yaml
    private final IConfigSource config;
-   private final ICredential   provider;
-   private final String        InstanceHostname;
-   //    private String DEFAULT_AVAILABILITY_ZONES = "";
+   private final ICredential provider;
+
    private List<String> DEFAULT_AVAILABILITY_ZONES = ImmutableList.of();
    private Map YAML_PROPERTY_MAP;
 
    @Inject
    public PriamConfiguration(ICredential provider, IConfigSource config) {
-      // public interface meta-data does not exist when Priam runs in AWS VPC (priam.vpc=true)
-      String p_hostname = "";
-      String p_ip = "";
-      try {
-         p_hostname = SystemUtils.getDataFromUrl("http://169.254.169.254/latest/meta-data/public-hostname").trim();
-      } catch (RuntimeException ex) {
-         // swallow
-      }
-      try {
-         p_ip = SystemUtils.getDataFromUrl("http://169.254.169.254/latest/meta-data/public-ipv4").trim();
-      } catch (RuntimeException ex) {
-         // swallow
-      }
-
-      this.InstanceHostname = SystemUtils.executeCommand("/bin/hostname");
-      this.PUBLIC_HOSTNAME = p_hostname;
-      this.PUBLIC_IP = p_ip;
       this.provider = provider;
       this.config = config;
    }
 
    @Override
    public void intialize() {
+      InstanceDataRetriever instanceDataRetriever;
+      try {
+         instanceDataRetriever = new AwsVpcInstanceDataRetriever();
+      } catch (Exception e) {
+         throw new IllegalStateException(
+               "Exception when instantiating the instance data retriever.  Msg: " + e.getLocalizedMessage());
+      }
+
+      try {
+         REGION = instanceDataRetriever.getRegion();
+      } catch (JSONException e) {
+         throw new IllegalStateException(
+               "Exception when instantiating region.  Msg: " + e.getLocalizedMessage());
+      }
+
+      RAC = instanceDataRetriever.getRac();
+      INSTANCE_ID = instanceDataRetriever.getInstanceId();
+      INSTANCE_TYPE = instanceDataRetriever.getInstanceType();
+      NETWORK_VPC = instanceDataRetriever.getVpcId();
+      LOCAL_IP = instanceDataRetriever.getPrivateIP();
+      C3_HOSTNAME = SystemUtils.executeCommand("/bin/hostname");
+
       setupEnvVars();
-      this.config.intialize(Ring_Name, REGION);
+      this.config.intialize(RING_NAME, REGION);
       setDefaultRACList(REGION);
       populateProps();
       populateYamlPropertyMap();
@@ -265,15 +85,9 @@ public class PriamConfiguration implements IConfiguration {
    }
 
    private void setupEnvVars() {
-      // Search in java opt properties
-      REGION = StringUtils.isBlank(REGION) ? System.getProperty("EC2_REGION") : REGION;
-      // Infer from zone
-      if (StringUtils.isBlank(REGION))
-         REGION = RAC.substring(0, RAC.length() - 1);
-      Ring_Name = StringUtils.isBlank(Ring_Name) ? System.getProperty("Ring_Name") : Ring_Name;
-      if (StringUtils.isBlank(Ring_Name))
-         Ring_Name = populateRingName(REGION, INSTANCE_ID);
-      logger.info(String.format("REGION set to %s, Ring Name set to %s", REGION, Ring_Name));
+      if (StringUtils.isBlank(RING_NAME))
+         RING_NAME = populateRingName(REGION, INSTANCE_ID);
+      logger.info(String.format("REGION set to %s, Ring Name set to %s", REGION, RING_NAME));
    }
 
    /**
@@ -303,13 +117,12 @@ public class PriamConfiguration implements IConfiguration {
       } catch (Exception e) {
          logger.info(e.getMessage());
       }
-
    }
 
    /**
     * Get the fist 3 available zones in the region
     */
-   public void setDefaultRACList(String region) {
+   private void setDefaultRACList(String region) {
       AmazonEC2 client = new AmazonEC2Client(provider.getAwsCredentialProvider());
       client.setEndpoint("ec2." + region + ".amazonaws.com");
       DescribeAvailabilityZonesResult res = client.describeAvailabilityZones();
@@ -318,64 +131,63 @@ public class PriamConfiguration implements IConfiguration {
          if (reg.getState().equals("available"))
             zone.add(reg.getZoneName());
       }
-      //        DEFAULT_AVAILABILITY_ZONES =  StringUtils.join(zone, ",");
       DEFAULT_AVAILABILITY_ZONES = ImmutableList.copyOf(zone);
    }
 
    private void populateProps() {
-      config.set(CONFIG_Ring_Name, Ring_Name);
-      config.set(CONFIG_REGION_NAME, REGION);
+      config.set(PRIAM_PRE + ".az.ringname", RING_NAME);
+      config.set(PRIAM_PRE + ".az.region", REGION);
    }
 
    @Override
    public String getCassStartupScript() {
-      return config.get(CONFIG_CASS_START_SCRIPT, DEFAULT_CASS_START_SCRIPT);
+      return config.get(PRIAM_PRE + ".cass.startscript", "/etc/init.d/cassandra start");
    }
 
    @Override
    public String getCassStopScript() {
-      return config.get(CONFIG_CASS_STOP_SCRIPT, DEFAULT_CASS_STOP_SCRIPT);
+      return config.get(PRIAM_PRE + ".cass.stopscript", "/etc/init.d/cassandra stop");
    }
 
    @Override
    public String getCassHome() {
-      return config.get(CONFIG_CASS_HOME_DIR, DEFAULT_CASS_HOME_DIR);
+      return config.get(PRIAM_PRE + ".cass.home", "/etc/cassandra");
    }
 
    @Override
    public String getBackupLocation() {
-      return config.get(CONFIG_S3_BASE_DIR, DEFAULT_BACKUP_LOCATION);
+      return config.get(PRIAM_PRE + ".s3.base_dir", "backup");
    }
 
    @Override
    public String getBackupPrefix() {
-      return config.get(CONFIG_BUCKET_NAME, DEFAULT_BUCKET_NAME);
+      return config.get(PRIAM_PRE + ".s3.bucket", "cassandra-archive");
    }
 
    @Override
    public int getBackupRetentionDays() {
-      return config.get(CONFIG_BACKUP_RETENTION, DEFAULT_BACKUP_RETENTION);
+      return config.get(PRIAM_PRE + ".backup.retention", 5);
    }
 
    @Override
    public List<String> getBackupRacs() {
-      return config.getList(CONFIG_BACKUP_RACS);
+      return config.getList(PRIAM_PRE + ".backup.racs");
    }
 
    @Override
    public String getRestorePrefix() {
-      return config.get(CONFIG_RESTORE_PREFIX);
+      return config.get(PRIAM_PRE + ".restore.prefix");
    }
 
    @Override
    public void setRestorePrefix(String prefix) {
-      config.set(CONFIG_RESTORE_PREFIX, prefix);
+      config.set(PRIAM_PRE + ".restore.prefix", prefix);
 
    }
 
    @Override
    public List<String> getRestoreKeySpaces() {
-      return config.getList(CONFIG_RESTORE_KEYSPACES);
+      return config.getList(PRIAM_PRE + ".restore.keyspaces");
    }
 
    @Override
@@ -391,72 +203,72 @@ public class PriamConfiguration implements IConfiguration {
          sb.append(keyspaces.get(i));
       }
 
-      config.set(CONFIG_RESTORE_KEYSPACES, sb.toString());
+      config.set(PRIAM_PRE + ".restore.keyspaces", sb.toString());
    }
 
    @Override
    public String getDataFileLocation() {
-      return config.get(CONFIG_DATA_LOCATION, DEFAULT_DATA_LOCATION);
+      return config.get(PRIAM_PRE + ".data.location", "/opt/cass/data");
    }
 
    @Override
    public String getCacheLocation() {
-      return config.get(CONFIG_SAVE_CACHE_LOCATION, DEFAULT_CACHE_LOCATION);
+      return config.get(PRIAM_PRE + ".cache.location", "/opt/cass/saved_caches");
    }
 
    @Override
    public String getCommitLogLocation() {
-      return config.get(CONFIG_CL_LOCATION, DEFAULT_COMMIT_LOG_LOCATION);
+      return config.get(PRIAM_PRE + ".commitlog.location", "/opt/cass/commitlog");
    }
 
    @Override
    public String getBackupCommitLogLocation() {
-      return config.get(CONFIG_CL_BK_LOCATION, "");
+      return config.get(PRIAM_PRE + ".backup.commitlog.location", "");
    }
 
    @Override
    public long getBackupChunkSize() {
-      long size = config.get(CONFIG_BACKUP_CHUNK_SIZE, DEFAULT_BACKUP_CHUNK_SIZE);
+      long size = config.get(PRIAM_PRE + ".backup.chunksizemb", 10);
       return size * 1024 * 1024L;
    }
 
    @Override
    public boolean isCommitLogBackup() {
-      return config.get(CONFIG_CL_BK_ENABLE, false);
+      return config.get(PRIAM_PRE + ".backup.commitlog.enable", false);
    }
 
    @Override
    public int getJmxPort() {
-      return config.get(CONFIG_JMX_LISTERN_PORT_NAME, DEFAULT_JMX_PORT);
+      return config.get(PRIAM_PRE + ".jmx.port", 7199);
    }
 
    public int getNativeTransportPort() {
-      return config.get(CONFIG_NATIVE_PROTOCOL_PORT, DEFAULT_NATIVE_PROTOCOL_PORT);
+      return config.get(PRIAM_PRE + ".nativeTransport.port", 9042);
    }
 
    @Override
    public int getThriftPort() {
-      return config.get(CONFIG_THRIFT_LISTEN_PORT_NAME, DEFAULT_THRIFT_PORT);
+      return config.get(PRIAM_PRE + ".thrift.port", 9160);
    }
 
    @Override
    public int getStoragePort() {
-      return config.get(CONFIG_STORAGE_LISTERN_PORT_NAME, DEFAULT_STORAGE_PORT);
+      return config.get(PRIAM_PRE + ".storage.port", 7000);
    }
 
    @Override
    public int getSSLStoragePort() {
-      return config.get(CONFIG_SSL_STORAGE_LISTERN_PORT_NAME, DEFAULT_SSL_STORAGE_PORT);
+      return config.get(PRIAM_PRE + ".ssl.storage.port", 7001);
    }
 
    @Override
    public String getSnitch() {
-      return config.get(CONFIG_ENDPOINT_SNITCH, DEFAULT_ENDPOINT_SNITCH);
+      return config.get(PRIAM_PRE + ".endpoint_snitch", "org.apache.cassandra.locator.Ec2Snitch");
    }
 
    @Override
    public String getAppName() {
-      return config.get(CONFIG_CLUSTER_NAME, DEFAULT_CLUSTER_NAME);
+      return config.get(PRIAM_PRE + ".clustername", "cass_cluster");
    }
 
    @Override
@@ -466,15 +278,12 @@ public class PriamConfiguration implements IConfiguration {
 
    @Override
    public List<String> getRacs() {
-      return config.getList(CONFIG_AVAILABILITY_ZONES, DEFAULT_AVAILABILITY_ZONES);
+      return config.getList(PRIAM_PRE + ".zones.available", DEFAULT_AVAILABILITY_ZONES);
    }
 
    @Override
    public String getHostname() {
-      if (this.isVpcRing())
-         return InstanceHostname;
-      else
-         return PUBLIC_HOSTNAME;
+      return C3_HOSTNAME;
    }
 
    @Override
@@ -484,124 +293,120 @@ public class PriamConfiguration implements IConfiguration {
 
    @Override
    public String getHeapSize() {
-      return config.get(CONFIG_MAX_HEAP_SIZE + INSTANCE_TYPE, DEFAULT_MAX_HEAP);
+      return config.get(PRIAM_PRE + ".heap.size." + INSTANCE_TYPE, "8G");
    }
 
    @Override
    public String getHeapNewSize() {
-      return config.get(CONFIG_NEW_MAX_HEAP_SIZE + INSTANCE_TYPE, DEFAULT_MAX_NEWGEN_HEAP);
+      return config.get(PRIAM_PRE + ".heap.newgen.size." + INSTANCE_TYPE, "2G");
    }
 
    @Override
    public String getMaxDirectMemory() {
-      return config.get(CONFIG_DIRECT_MAX_HEAP_SIZE + INSTANCE_TYPE, DEFAULT_MAX_DIRECT_MEM);
+      return config.get(PRIAM_PRE + ".direct.memory.size." + INSTANCE_TYPE, "50G");
    }
 
    @Override
    public int getBackupHour() {
-      return config.get(CONFIG_BACKUP_HOUR, DEFAULT_BACKUP_HOUR);
+      return config.get(PRIAM_PRE + ".backup.hour", 12);
    }
 
    @Override
    public String getRestoreSnapshot() {
-      return config.get(CONFIG_AUTO_RESTORE_SNAPSHOTNAME, "");
+      return config.get(PRIAM_PRE + ".restore.snapshot", "");
    }
 
    @Override
    public String getDC() {
-      return config.get(CONFIG_REGION_NAME, "");
+      return config.get(PRIAM_PRE + ".az.region", REGION);
    }
 
    @Override
    public void setDC(String region) {
-      config.set(CONFIG_REGION_NAME, region);
+      config.set(PRIAM_PRE + ".az.region", region);
    }
 
    @Override
    public boolean isMultiDC() {
-      return config.get(CONFIG_MR_ENABLE, false);
+      return config.get(PRIAM_PRE + ".multiregion.enable", false);
    }
 
    @Override
    public int getMaxBackupUploadThreads() {
-
-      return config.get(CONFIG_BACKUP_THREADS, DEFAULT_BACKUP_THREADS);
+      return config.get(PRIAM_PRE + ".backup.threads", 2);
    }
 
    @Override
    public int getMaxBackupDownloadThreads() {
-      return config.get(CONFIG_RESTORE_THREADS, DEFAULT_RESTORE_THREADS);
+      return config.get(PRIAM_PRE + ".restore.threads", 8);
    }
 
    @Override
    public boolean isRestoreClosestToken() {
-      return config.get(CONFIG_RESTORE_CLOSEST_TOKEN, false);
+      return config.get(PRIAM_PRE + ".restore.closesttoken", false);
    }
 
    @Override
    public String getRingName() {
-      return config.get(CONFIG_Ring_Name, "");
+      return config.get(PRIAM_PRE + ".az.ringname", "");
    }
 
    @Override
    public String getACLGroupName() {
-      return config.get(CONFIG_ACL_GROUP_NAME, this.getAppName());
+      return config.get(PRIAM_PRE + ".acl.groupname", this.getAppName());
    }
 
    @Override
    public boolean isIncrBackup() {
-      return config.get(CONFIG_INCR_BK_ENABLE, true);
+      return config.get(PRIAM_PRE + ".backup.incremental.enable", true);
    }
 
    @Override
    public String getHostIP() {
-      if (this.isVpcRing())
-         return LOCAL_IP;
-      else
-         return PUBLIC_IP;
+      return LOCAL_IP;
    }
 
    @Override
    public int getUploadThrottle() {
-      return config.get(CONFIG_THROTTLE_UPLOAD_PER_SECOND, Integer.MAX_VALUE);
+      return config.get(PRIAM_PRE + ".upload.throttle", Integer.MAX_VALUE);
    }
 
    @Override
    public boolean isLocalBootstrapEnabled() {
-      return config.get(CONFIG_LOAD_LOCAL_PROPERTIES, false);
+      return config.get(PRIAM_PRE + ".localbootstrap.enable", false);
    }
 
    @Override
    public int getInMemoryCompactionLimit() {
-      return config.get(CONFIG_IN_MEMORY_COMPACTION_LIMIT, 128);
+      return config.get(PRIAM_PRE + ".memory.compaction.limit", 128);
    }
 
    @Override
    public int getCompactionThroughput() {
-      return config.get(CONFIG_COMPACTION_THROUHPUT, 8);
+      return config.get(PRIAM_PRE + ".compaction.throughput", 8);
    }
 
    @Override
    public int getMaxHintWindowInMS() {
-      return config.get(CONFIG_MAX_HINT_WINDOW_IN_MS, 10800000);
+      return config.get(PRIAM_PRE + ".hint.window", 10800000);
    }
 
    public int getHintedHandoffThrottleKb() {
-      return config.get(CONFIG_HINTS_THROTTLE_KB, DEFAULT_HINTS_THROTTLE_KB);
+      return config.get(PRIAM_PRE + ".hints.throttleKb", 1024);
    }
 
    public int getMaxHintThreads() {
-      return config.get(CONFIG_MAX_HINT_THREADS, DEFAULT_HINTS_MAX_THREADS);
+      return config.get(PRIAM_PRE + ".hints.maxThreads", 2);
    }
 
    @Override
    public String getBootClusterName() {
-      return config.get(CONFIG_BOOTCLUSTER_NAME, "");
+      return config.get(PRIAM_PRE + ".bootcluster", "");
    }
 
    @Override
    public String getSeedProviderName() {
-      return config.get(CONFIG_SEED_PROVIDER_NAME, DEFAULT_SEED_PROVIDER);
+      return config.get(PRIAM_PRE + ".seed.provider", "c3.ops.cassandra.cassandra.extensions.NFSeedProvider");
    }
 
    @Override
@@ -609,204 +414,165 @@ public class PriamConfiguration implements IConfiguration {
     * Defaults to 0, means dont set it in yaml
     */
    public int getMemtableTotalSpaceMB() {
-      return config.get(CONFIG_MEMTABLE_TOTAL_SPACE, 1024);
+      return config.get(PRIAM_PRE + ".memtabletotalspace", 1024);
    }
 
    @Override
    public int getStreamingThroughputMB() {
-      return config.get(CONFIG_STREAMING_THROUGHPUT_MB, 400);
+      return config.get(PRIAM_PRE + ".streaming.throughput.mb", 400);
    }
 
    @Override
    public boolean getMultithreadedCompaction() {
-      return config.get(CONFIG_MULTITHREADED_COMPACTION, false);
+      return config.get(PRIAM_PRE + ".multithreaded.compaction", false);
    }
 
    public String getPartitioner() {
-      return config.get(CONFIG_PARTITIONER, DEFAULT_PARTITIONER);
+      return config.get(PRIAM_PRE + ".partitioner", "org.apache.cassandra.dht.RandomPartitioner");
    }
 
    public String getKeyCacheSizeInMB() {
-      return config.get(CONFIG_KEYCACHE_SIZE);
+      return config.get(PRIAM_PRE + ".keyCache.size");
    }
 
    public String getKeyCacheKeysToSave() {
-      return config.get(CONFIG_KEYCACHE_COUNT);
+      return config.get(PRIAM_PRE + ".keyCache.count");
    }
 
    public String getRowCacheSizeInMB() {
-      return config.get(CONFIG_ROWCACHE_SIZE);
+      return config.get(PRIAM_PRE + ".rowCache.size");
    }
 
    public String getRowCacheKeysToSave() {
-      return config.get(CONFIG_ROWCACHE_COUNT);
+      return config.get(PRIAM_PRE + ".rowCache.count");
    }
 
    @Override
    public String getCassProcessName() {
-      return config.get(CONFIG_CASS_PROCESS_NAME, DEFAULT_CASS_PROCESS_NAME);
+      return config.get(PRIAM_PRE + ".cass.process", "CassandraDaemon");
    }
 
    public int getNumTokens() {
-      return config.get(CONFIG_VNODE_NUM_TOKENS, DEFAULT_VNODE_NUM_TOKENS);
+      return config.get(PRIAM_PRE + ".vnodes.numTokens", 1);
    }
 
    public String getYamlLocation() {
-      return config.get(CONFIG_YAML_LOCATION, getCassHome() + "/conf/cassandra.yaml");
+      return config.get(PRIAM_PRE + ".yamlLocation", getCassHome() + "/conf/cassandra.yaml");
    }
 
    public String getAuthenticator() {
-      return config.get(CONFIG_AUTHENTICATOR, DEFAULT_AUTHENTICATOR);
+      return config.get(PRIAM_PRE + ".authenticator", "org.apache.cassandra.auth.AllowAllAuthenticator");
    }
 
    public String getAuthorizer() {
-      return config.get(CONFIG_AUTHORIZER, DEFAULT_AUTHORIZER);
+      return config.get(PRIAM_PRE + ".authorizer", "org.apache.cassandra.auth.AllowAllAuthorizer");
    }
 
    public String getTargetKSName() {
-      return config.get(CONFIG_TARGET_KEYSPACE_NAME);
+      return config.get(PRIAM_PRE + ".target.keyspace");
    }
 
    @Override
    public String getTargetCFName() {
-      return config.get(CONFIG_TARGET_COLUMN_FAMILY_NAME);
+      return config.get(PRIAM_PRE + ".target.columnfamily");
    }
 
    @Override
    public boolean doesCassandraStartManually() {
-      return config.get(CONFIG_CASS_MANUAL_START_ENABLE, false);
+      return config.get(PRIAM_PRE + ".cass.manual.start.enable", false);
    }
 
    @Override
    public boolean doesCassandraConfiguredManually() {
-      return config.get(CONFIG_CASS_MANUAL_CONFIG_ENABLE, false);
+      return config.get(PRIAM_PRE + ".cass.manual.config.enable", false);
    }
 
    public String getInternodeCompression() {
-      return config.get(CONFIG_INTERNODE_COMPRESSION, DEFAULT_INTERNODE_COMPRESSION);
+      return config.get(PRIAM_PRE + ".internodeCompression", "all");
    }
 
    @Override
    public boolean isBackingUpCommitLogs() {
-      return config.get(CONFIG_COMMITLOG_BKUP_ENABLED, false);
+      return config.get(PRIAM_PRE + ".clbackup.enabled", false);
    }
 
    @Override
    public String getCommitLogBackupArchiveCmd() {
-      return config.get(CONFIG_COMMITLOG_ARCHIVE_CMD, "/bin/ln %path /mnt/data/backup/%name");
+      return config.get(PRIAM_PRE + ".clbackup.archiveCmd", "/bin/ln %path /mnt/data/backup/%name");
    }
 
    @Override
    public String getCommitLogBackupRestoreCmd() {
-      return config.get(CONFIG_COMMITLOG_RESTORE_CMD, "/bin/mv %from %to");
+      return config.get(PRIAM_PRE + ".clbackup.restoreCmd", "/bin/mv %from %to");
    }
 
    @Override
    public String getCommitLogBackupRestoreFromDirs() {
-      return config.get(CONFIG_COMMITLOG_RESTORE_DIRS, "/mnt/data/backup/commitlog/");
+      return config.get(PRIAM_PRE + ".clbackup.restoreDirs", "/mnt/data/backup/commitlog/");
    }
 
    @Override
    public String getCommitLogBackupRestorePointInTime() {
-      return config.get(CONFIG_COMMITLOG_RESTORE_POINT_IN_TIME, "");
+      return config.get(PRIAM_PRE + ".clbackup.restoreTime", "");
    }
 
    @Override
    public int maxCommitLogsRestore() {
-      return config.get(CONFIG_COMMITLOG_RESTORE_MAX, 10);
+      return config.get(PRIAM_PRE + ".clrestore.max", 10);
    }
 
    @Override
    public boolean isVpcRing() {
-      return config.get(CONFIG_VPC_RING, false);
+      return config.get(PRIAM_PRE + ".vpc", false);
    }
 
    public boolean isClientSslEnabled() {
-      return config.get(CONFIG_CLIENT_SSL_ENABLED, false);
+      return config.get(PRIAM_PRE + ".client.sslEnabled", false);
    }
 
    public String getInternodeEncryption() {
-      return config.get(CONFIG_INTERNODE_ENCRYPTION, "none");
+      return config.get(PRIAM_PRE + ".internodeEncryption", "none");
    }
 
    public boolean isDynamicSnitchEnabled() {
-      return config.get(CONFIG_DSNITCH_ENABLED, true);
+      return config.get(PRIAM_PRE + ".dsnitchEnabled", true);
    }
 
    public boolean isThriftEnabled() {
-      return config.get(CONFIG_THRIFT_ENABLED, true);
+      return config.get(PRIAM_PRE + ".thrift.enabled", true);
    }
 
    public boolean isNativeTransportEnabled() {
-      return config.get(CONFIG_NATIVE_PROTOCOL_ENABLED, false);
+      return config.get(PRIAM_PRE + ".nativeTransport.enabled", false);
    }
 
    public String getS3EndPoint() {
-      String region = getDC();
-
-      String s3Url = null;
-
-      if (US_EAST_1_REGION.equals(region)) {
-         s3Url = config.get(CONFIG_US_EAST_1_S3_ENDPOINT);
-         return StringUtils.isBlank(s3Url) ? DEFAULT_US_EAST_1_S3_ENDPOINT : s3Url;
-      }
-
-      if (US_WEST_1_REGION.equals(region)) {
-         s3Url = config.get(CONFIG_US_WEST_1_S3_ENDPOINT);
-         return StringUtils.isBlank(s3Url) ? DEFAULT_US_WEST_1_S3_ENDPOINT : s3Url;
-      }
-
-      if (US_WEST_2_REGION.equals(region)) {
-         s3Url = config.get(CONFIG_US_WEST_2_S3_ENDPOINT);
-         return StringUtils.isBlank(s3Url) ? DEFAULT_US_WEST_2_S3_ENDPOINT : s3Url;
-      }
-
-      if (EU_WEST_1_REGION.equals(region)) {
-         s3Url = config.get(CONFIG_EU_WEST_1_S3_ENDPOINT);
-         return StringUtils.isBlank(s3Url) ? DEFAULT_EU_WEST_1_S3_ENDPOINT : s3Url;
-      }
-
-      if (SA_EAST_1_REGION.equals(region)) {
-         s3Url = config.get(CONFIG_SA_EAST_1_S3_ENDPOINT);
-         return StringUtils.isBlank(s3Url) ? DEFAULT_SA_EAST_1_S3_ENDPOINT : s3Url;
-      }
-
-      if (AP_SOUTHEAST_2_REGION.equals(region)) {
-         s3Url = config.get(CONFIG_AP_SOUTHEAST_2_S3_ENDPOINT);
-         return StringUtils.isBlank(s3Url) ? DEFAULT_AP_SOUTHEAST_2_S3_ENDPOINT : s3Url;
-      }
-
-      if (US_EAST_2_REGION.equals(region)) {
-         s3Url = config.get(CONFIG_US_EAST_2_S3_ENDPOINT);
-         return StringUtils.isBlank(s3Url) ? DEFAULT_US_EAST_2_S3_ENDPOINT : s3Url;
-      }
-
-      return null;
+      return "s3." + getDC() + ".amazonaws.com";
    }
 
    public int getConcurrentReadsCnt() {
-      return config.get(CONFIG_CONCURRENT_READS, 32);
+      return config.get(PRIAM_PRE + ".concurrentReads", 32);
    }
 
    public int getConcurrentWritesCnt() {
-      return config.get(CONFIG_CONCURRENT_WRITES, 32);
+      return config.get(PRIAM_PRE + ".concurrentWrites", 32);
    }
 
    public int getConcurrentCompactorsCnt() {
       int cpus = Runtime.getRuntime().availableProcessors();
-      return config.get(CONFIG_CONCURRENT_COMPACTORS, cpus);
+      return config.get(PRIAM_PRE + ".concurrentCompactors", cpus);
    }
 
    public String getRpcServerType() {
-      return config.get(CONFIG_RPC_SERVER_TYPE, DEFAULT_RPC_SERVER_TYPE);
+      return config.get(PRIAM_PRE + ".rpc.server.type", "sync");
    }
 
    public int getIndexInterval() {
-      return config.get(CONFIG_INDEX_INTERVAL, DEFAULT_INDEX_INTERVAL);
+      return config.get(PRIAM_PRE + ".index.interval", 256);
    }
 
    public String getExtraConfigParams() {
-      return config.get(CONFIG_EXTRA_PARAMS);
+      return config.get(PRIAM_PRE + ".extra.params");
    }
 
    public String getCassYamlVal(String priamKey) {
@@ -814,17 +580,17 @@ public class PriamConfiguration implements IConfiguration {
    }
 
    public boolean getAutoBoostrap() {
-      return config.get(CONFIG_AUTO_BOOTSTRAP, true);
+      return config.get(PRIAM_PRE + ".auto.bootstrap", true);
    }
 
    //values are cassandra, solr, hadoop, spark or hadoop-spark
    public String getDseClusterType() {
-      return config.get(CONFIG_DSE_CLUSTER_TYPE + "." + Ring_Name, "cassandra");
+      return config.get(PRIAM_PRE + ".dse.cluster.type" + "." + RING_NAME, "cassandra");
    }
 
    @Override
    public boolean isCreateNewTokenEnable() {
-      return config.get(CONFIG_CREATE_NEW_TOKEN_ENABLE, true);
+      return config.get(PRIAM_PRE + ".create.new.token.enable", true);
    }
 
    @Override
@@ -834,25 +600,23 @@ public class PriamConfiguration implements IConfiguration {
 
    @Override
    public boolean isDebugBackupEnabled() {
-      return config.get(CONFIG_BACKUP_DEBUG, false);
+      return config.get(PRIAM_PRE + ".restore.source.type", false);
    }
 
    @Override
    public boolean isValidateBackupEnabled() {
-      return config.get(CONFIG_BACKUP_VALIDATE, false);
+      return config.get(PRIAM_PRE + ".restore.source.type", false);
    }
 
    private class GetRingName extends RetryableCallable<String> {
 
-      private static final int  NUMBER_OF_RETRIES = 15;
-      private static final long WAIT_TIME         = 30000;
-      private final String    region;
-      private final String    instanceId;
+      private static final int NUMBER_OF_RETRIES = 15;
+      private static final long WAIT_TIME = 30000;
+      private final String instanceId;
       private final AmazonEC2 client;
 
       public GetRingName(String region, String instanceId) {
          super(NUMBER_OF_RETRIES, WAIT_TIME);
-         this.region = region;
          this.instanceId = instanceId;
          client = new AmazonEC2Client(provider.getAwsCredentialProvider());
          client.setEndpoint("ec2." + region + ".amazonaws.com");
@@ -862,23 +626,129 @@ public class PriamConfiguration implements IConfiguration {
       public String retriableCall() throws IllegalStateException {
          DescribeInstancesRequest desc = new DescribeInstancesRequest().withInstanceIds(instanceId);
          DescribeInstancesResult res = client.describeInstances(desc);
+         String hostName = C3_HOSTNAME;
 
          for (Reservation resr : res.getReservations()) {
             for (Instance ins : resr.getInstances()) {
                for (com.amazonaws.services.ec2.model.Tag tag : ins.getTags()) {
-                  if (tag.getKey().equals("host_name")) {
-                     String hostName = tag.getValue();
-                     Pattern pattern = Pattern.compile("^(\\w+\\-\\w+)\\-cass\\-\\d+.*+$");
-                     Matcher matcher = pattern.matcher(hostName);
-                     if (matcher.find())
-                        return matcher.group(1);
-                  }
+                  if (tag.getKey().equals("Name") || tag.getKey().equals("QName") || tag.getKey().equals("host_name"))
+                     hostName = tag.getValue();
                }
             }
          }
 
+         Pattern pattern = Pattern.compile("^(\\w+\\-\\w+)\\-cass\\-\\d+.*+$");
+         Matcher matcher = pattern.matcher(hostName);
+         if (matcher.find())
+            return matcher.group(1);
+
          logger.warn("Couldn't determine Ring name");
          throw new IllegalStateException("Couldn't determine Ring name");
       }
+   }
+
+   @Override
+   public int getUncrementalBkupQueueSize() {
+      return config.get(PRIAM_PRE + ".incremental.bkup.queue.size", 100000);
+   }
+
+   public int getRpcMinThreads() {
+      return config.get(PRIAM_PRE + ".rpc.min.threads", 16);
+   }
+
+   public int getRpcMaxThreads() {
+      return config.get(PRIAM_PRE + ".rpc.max.threads", 2048);
+   }
+
+   @Override
+   public String getAWSRoleAssumptionArn() {
+      return config.get(PRIAM_PRE + ".roleassumption.arn");
+   }
+
+   public Map<String, String> getExtraEnvParams() {
+
+      String envParams = config.get(PRIAM_PRE + ".extra.env.params");
+      if (envParams == null) {
+         logger.info("getExtraEnvParams: No extra env params");
+         return null;
+      }
+      Map<String, String> extraEnvParamsMap = new HashMap<String, String>();
+      String[] pairs = envParams.split(",");
+      logger.info("getExtraEnvParams: Extra cass params. From config :" + envParams);
+      for (int i = 0; i < pairs.length; i++) {
+         String[] pair = pairs[i].split("=");
+         if (pair.length > 1) {
+            String priamKey = pair[0];
+            String cassKey = pair[1];
+            String cassVal = config.get(priamKey);
+            logger.info("getExtraEnvParams: Start-up/ env params: Priamkey[" + priamKey + "], CassStartupKey[" + cassKey
+                        + "], Val[" + cassVal + "]");
+            if (!StringUtils.isBlank(cassKey) && !StringUtils.isBlank(cassVal)) {
+               extraEnvParamsMap.put(cassKey, cassVal);
+            }
+         }
+      }
+      return extraEnvParamsMap;
+
+   }
+
+   @Override
+   public String getRestoreSourceType() {
+      return config.get(PRIAM_PRE + ".restore.source.type");
+   }
+
+   @Override
+   public boolean isEncryptBackupEnabled() {
+      return config.get(PRIAM_PRE + ".encrypted.backup.enabled", false);
+   }
+
+   @Override
+   public Boolean isIncrBackupParallelEnabled() {
+      return config.get(PRIAM_PRE + ".incremental.bkup.parallel", false);
+   }
+
+   @Override
+   public String getSnapshotKeyspaceFilters() {
+      return config.get(PRIAM_PRE + ".snapshot.keyspace.filter");
+   }
+
+   @Override
+   public String getSnapshotCFFilter() throws IllegalArgumentException {
+      return config.get(PRIAM_PRE + ".snapshot.cf.filter");
+   }
+
+   @Override
+   public String getVpcId() {
+      return NETWORK_VPC;
+   }
+
+   @Override
+   public String getRestoreKeyspaceFilter() {
+      return config.get(PRIAM_PRE + ".restore.keyspace.filter");
+   }
+
+   @Override
+   public String getIncrementalKeyspaceFilters() {
+      return config.get(PRIAM_PRE + ".incremental.keyspace.filter");
+   }
+
+   @Override
+   public String getIncrementalCFFilter() {
+      return config.get(PRIAM_PRE + ".incremental.cf.filter");
+   }
+
+   @Override
+   public String getRestoreCFFilter() {
+      return config.get(PRIAM_PRE + ".restore.cf.filter");
+   }
+
+   @Override
+   public int getIncrementalBkupMaxConsumers() {
+      return config.get(PRIAM_PRE + ".incremental.bkup.max.consumers", 4);
+   }
+
+   @Override
+   public String getPrivateKeyLocation() {
+      return config.get(PRIAM_PRE + ".private.key.location");
    }
 }

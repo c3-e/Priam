@@ -17,14 +17,17 @@ package c3.ops.priam;
 
 import c3.ops.priam.defaultimpl.PriamConfiguration;
 import com.google.inject.ImplementedBy;
+import org.codehaus.jettison.json.JSONException;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Interface for Priam's configuration
  */
 @ImplementedBy(PriamConfiguration.class)
-public interface IConfiguration {
+public interface IConfiguration
+{
 
   public void intialize();
 
@@ -76,17 +79,16 @@ public interface IConfiguration {
   public String getRestorePrefix();
 
   /**
-   * @param prefix Set the current restore prefix
+   * @param prefix
+   *            Set the current restore prefix
    */
   public void setRestorePrefix(String prefix);
 
   /**
    * @return List of keyspaces to restore. If none, all keyspaces are
-   * restored.
+   *         restored.
    */
   public List<String> getRestoreKeySpaces();
-
-  public void setRestoreKeySpaces(List<String> keyspaces);
 
   /**
    * @return Location of the local data dir
@@ -185,6 +187,45 @@ public interface IConfiguration {
    */
   public int getBackupHour();
 
+  /*
+   * @return key spaces, comma delimited, to filter from restore.  If no filter is applied, returns null or empty string.
+   */
+  public String getSnapshotKeyspaceFilters();
+
+  /*
+   * Column Family(ies), comma delimited, to filter from backup.
+   * *Note:  the expected format is keyspace.cfname
+   *
+   * @return Column Family(ies), comma delimited, to filter from backup.  If no filter is applied, returns null.
+   */
+  public String getSnapshotCFFilter();
+
+  /*
+   * @return key spaces, comma delimited, to filter from restore.  If no filter is applied, returns null or empty string.
+   */
+  public String getIncrementalKeyspaceFilters();
+
+  /*
+   * Column Family(ies), comma delimited, to filter from backup.
+   * *Note:  the expected format is keyspace.cfname
+   *
+   * @return Column Family(ies), comma delimited, to filter from backup.  If no filter is applied, returns null.
+   */
+  public String getIncrementalCFFilter();
+
+  /*
+   * @return key spaces, comma delimited, to filter from restore.  If no filter is applied, returns null or empty string.
+   */
+  public String getRestoreKeyspaceFilter();
+
+  /*
+   * Column Family(ies), comma delimited, to filter from backup.
+   * Note:  the expected format is keyspace.cfname
+   *
+   * @return Column Family(ies), comma delimited, to filter from restore.  If no filter is applied, returns null or empty string.
+   */
+  public String getRestoreCFFilter();
+
   /**
    * Specifies the start and end time used for restoring data (yyyyMMddHHmm
    * format) Eg: 201201132030,201201142030
@@ -199,7 +240,8 @@ public interface IConfiguration {
   public String getDC();
 
   /**
-   * @param region Set the current data center
+   * @param region
+   *            Set the current data center
    */
   public void setDC(String region);
 
@@ -220,7 +262,7 @@ public interface IConfiguration {
 
   /**
    * @return true if restore should search for nearest token if current token
-   * is not found
+   *         is not found
    */
   public boolean isRestoreClosestToken();
 
@@ -355,7 +397,6 @@ public interface IConfiguration {
    * This can be used during cluster migration.
    * When on Target Cluster, keyspace name is different
    * than the original one.
-   *
    * @return New Keyspace Name on Target Cluster
    */
   public String getTargetKSName();
@@ -364,7 +405,6 @@ public interface IConfiguration {
    * This can be used during cluster migration.
    * When on Target Cluster, Column Family name is different
    * than the original one.
-   *
    * @return New Column Family Name on Target Cluster
    */
   public String getTargetCFName();
@@ -401,6 +441,8 @@ public interface IConfiguration {
    */
   public boolean isVpcRing();
 
+  public void setRestoreKeySpaces(List<String> keyspaces);
+
   public boolean isClientSslEnabled();
 
   public String getInternodeEncryption();
@@ -410,17 +452,15 @@ public interface IConfiguration {
   public boolean isThriftEnabled();
 
   public boolean isNativeTransportEnabled();
-
   public String getS3EndPoint();
 
   public int getConcurrentReadsCnt();
-
   public int getConcurrentWritesCnt();
-
   public int getConcurrentCompactorsCnt();
 
   public String getRpcServerType();
-
+  public int getRpcMinThreads();
+  public int getRpcMaxThreads();
   public int getIndexInterval();
 
   public String getExtraConfigParams();
@@ -433,8 +473,56 @@ public interface IConfiguration {
 
   //if using with Datastax Enterprise
   public String getDseClusterType();
-
   public boolean isCreateNewTokenEnable();
+
+  /*
+   * @return the location on disk of the private key used by the cryptography algorithm
+   */
+  public String getPrivateKeyLocation();
+  /*
+   * @return the type of source for the restore.  Valid values are: AWSCROSSACCT or GOOGLE.
+   * Note: for backward compatibility, this property should be optional.  Specifically, if it does not exist, it should not cause an adverse impact on current functionality.
+   *
+   * AWSCROSSACCT
+   * - You are restoring from an AWS account which requires cross account assumption where an IAM user in one account is allowed to access resources that belong
+   * to a different account.
+   *
+   * GOOGLE
+   * - You are restoring from Google Cloud Storage
+   *
+   */
+  public String getRestoreSourceType();
+  /*
+   * @return true to enable encryption of backup (snapshots, incrementals, commit logs).
+   * Note: for backward compatibility, this property should be optional.  Specifically, if it does not exist, it should not cause an adverse impact on current functionality.
+   */
+  public boolean isEncryptBackupEnabled();
+  /*
+   * @return the Amazon Resource Name (ARN).  This is applicable when restoring from an AWS account which requires cross account assumption.
+   * Note: for backward compatibility, this property should be optional.  Specifically, if it does not exist, it should not cause an adverse impact on current functionality.
+   */
+  public String getAWSRoleAssumptionArn();
+
+  /**
+   * Use this method for adding extra/ dynamic cassandra startup options or env properties
+   * @return
+   */
+  Map<String, String> getExtraEnvParams();
+
+  /*
+   * @return the vpc id of the running instance.
+   */
+  public String getVpcId();
+
+  public Boolean isIncrBackupParallelEnabled();
+  /*
+   * The number of workers for parallel uploads.
+   */
+  public int getIncrementalBkupMaxConsumers();
+  /*
+   * The max number of files queued to be uploaded.
+   */
+  public int getUncrementalBkupQueueSize();
 
   public boolean isDebugBackupEnabled();
 

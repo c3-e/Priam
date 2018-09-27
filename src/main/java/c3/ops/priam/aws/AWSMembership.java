@@ -36,7 +36,8 @@ import java.util.List;
  * Class to query amazon Ring for its members to provide - Number of valid nodes
  * in the Ring - Number of zones - Methods for adding ACLs for the nodes
  */
-public class AWSMembership implements IMembership {
+public class AWSMembership implements IMembership
+{
   private static final Logger logger = LoggerFactory.getLogger(AWSMembership.class);
   private final IConfiguration config;
   private final ICredential provider;
@@ -64,10 +65,12 @@ public class AWSMembership implements IMembership {
         for (Instance instance : reservation.getInstances()) {
           instanceIds.add(instance.getInstanceId());
           logger.info(String.format("Querying Amazon returned following instance in the Ring: %s --> %s", config.getRac(), StringUtils.join(instanceIds, ",")));
-        }
+      }
       }
       return instanceIds;
-    } finally {
+    }
+    finally
+    {
       if (client != null)
         client.shutdown();
     }
@@ -93,20 +96,23 @@ public class AWSMembership implements IMembership {
   }
 
   @Override
-  public int getRacCount() {
+  public int getRacCount()
+  {
     return config.getRacs().size();
   }
 
   /**
    * Adds a iplist to the SG.
    */
-  public void addACL(Collection<String> listIPs, int from, int to) {
+  public void addACL(Collection<String> listIPs, int from, int to)
+  {
     AmazonEC2 client = null;
-    try {
+    try
+    {
       client = getEc2Client();
       List<IpPermission> ipPermissions = new ArrayList<IpPermission>();
       ipPermissions.add(new IpPermission().withFromPort(from).withIpProtocol("tcp").withIpRanges(listIPs).withToPort(to));
-      client.authorizeSecurityGroupIngress(new AuthorizeSecurityGroupIngressRequest(config.getACLGroupName(), ipPermissions));
+        client.authorizeSecurityGroupIngress(new AuthorizeSecurityGroupIngressRequest(config.getACLGroupName(), ipPermissions));
       logger.info("Done adding ACL to: " + StringUtils.join(listIPs, ","));
     } finally {
       if (client != null)
@@ -117,13 +123,15 @@ public class AWSMembership implements IMembership {
   /**
    * removes a iplist from the SG
    */
-  public void removeACL(Collection<String> listIPs, int from, int to) {
+  public void removeACL(Collection<String> listIPs, int from, int to)
+  {
     AmazonEC2 client = null;
-    try {
+    try
+    {
       client = getEc2Client();
       List<IpPermission> ipPermissions = new ArrayList<IpPermission>();
       ipPermissions.add(new IpPermission().withFromPort(from).withIpProtocol("tcp").withIpRanges(listIPs).withToPort(to));
-      client.revokeSecurityGroupIngress(new RevokeSecurityGroupIngressRequest(config.getACLGroupName(), ipPermissions));
+        client.revokeSecurityGroupIngress(new RevokeSecurityGroupIngressRequest(config.getACLGroupName(), ipPermissions));
       logger.info("Done removing from ACL: " + StringUtils.join(listIPs, ","));
     } finally {
       if (client != null)
@@ -134,17 +142,19 @@ public class AWSMembership implements IMembership {
   /**
    * List SG ACL's
    */
-  public List<String> listACL(int from, int to) {
+  public List<String> listACL(int from, int to)
+  {
     AmazonEC2 client = null;
-    try {
+    try
+    {
       client = getEc2Client();
       List<String> ipPermissions = new ArrayList<String>();
-      DescribeSecurityGroupsRequest req = new DescribeSecurityGroupsRequest().withGroupNames(Arrays.asList(config.getACLGroupName()));
-      DescribeSecurityGroupsResult result = client.describeSecurityGroups(req);
-      for (SecurityGroup group : result.getSecurityGroups())
-        for (IpPermission perm : group.getIpPermissions())
-          if (perm.getFromPort() == from && perm.getToPort() == to)
-            ipPermissions.addAll(perm.getIpRanges());
+        DescribeSecurityGroupsRequest req = new DescribeSecurityGroupsRequest().withGroupNames(Arrays.asList(config.getACLGroupName()));
+        DescribeSecurityGroupsResult result = client.describeSecurityGroups(req);
+        for (SecurityGroup group : result.getSecurityGroups())
+          for (IpPermission perm : group.getIpPermissions())
+            if (perm.getFromPort() == from && perm.getToPort() == to)
+              ipPermissions.addAll(perm.getIpRanges());
       return ipPermissions;
     } finally {
       if (client != null)
@@ -152,7 +162,8 @@ public class AWSMembership implements IMembership {
     }
   }
 
-  protected AmazonEC2 getEc2Client() {
+  protected AmazonEC2 getEc2Client()
+  {
     AmazonEC2 client = new AmazonEC2Client(provider.getAwsCredentialProvider());
     client.setEndpoint("ec2." + config.getDC() + ".amazonaws.com");
     return client;

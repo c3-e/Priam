@@ -2,7 +2,6 @@ package c3.ops.priam.defaultimpl;
 
 import c3.ops.priam.CompositeConfigSource;
 import c3.ops.priam.PropertiesConfigSource;
-import c3.ops.priam.SimpleDBConfigSource;
 import c3.ops.priam.SystemPropertiesConfigSource;
 
 import javax.inject.Inject;
@@ -13,13 +12,11 @@ import javax.inject.Inject;
 public class PriamConfigSource extends CompositeConfigSource {
 
   @Inject
-  public PriamConfigSource(final SimpleDBConfigSource simpleDBConfigSource,
-                           final PropertiesConfigSource propertiesConfigSource,
+  public PriamConfigSource(final PropertiesConfigSource propertiesConfigSource,
                            final SystemPropertiesConfigSource systemPropertiesConfigSource) {
     // this order was based off PriamConfigurations loading.  W/e loaded last could override, but with Composite, first
     // has the highest priority.
-    super(simpleDBConfigSource,
-        propertiesConfigSource,
+    super(propertiesConfigSource,
         systemPropertiesConfigSource);
   }
 }
